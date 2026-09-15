@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Parametric solid · Models</title>
+  </head>
+  <body>
+    <main>
+      <aside>
+        <p class="eyebrow">MODELS / 001</p>
+        <h1>Box with<br />a through-hole.</h1>
+        <p class="intro">
+          A small mechanical solid, rebuilt in your browser. Dimensions in
+          millimetres.
+        </p>
+        <form id="parameters">
+          <label
+            >Width
+            <input
+              name="width"
+              type="number"
+              min="0.5"
+              max="200"
+              step="0.5"
+              value="40"
+              required /></label
+          ><label
+            >Length
+            <input
+              name="length"
+              type="number"
+              min="0.5"
+              max="200"
+              step="0.5"
+              value="30"
+              required /></label
+          ><label
+            >Height
+            <input
+              name="height"
+              type="number"
+              min="0.5"
+              max="200"
+              step="0.5"
+              value="12"
+              required /></label
+          ><label
+            >Hole diameter
+            <input
+              name="diameter"
+              type="number"
+              min="0.5"
+              max="200"
+              step="0.5"
+              value="10"
+              required
+          /></label>
+        </form>
+        <p id="status" role="status">Loading geometry engine…</p>
+        <p id="metrics"></p>
+        <div class="exports">
+          <button id="step" disabled>Export STEP</button
+          ><button id="stl" disabled>Export STL</button>
+        </div>
+        <p class="note">
+          STEP preserves editable CAD surfaces. STL is a print mesh; import it
+          in millimetres.
+        </p>
+      </aside>
+      <section id="viewport" aria-label="Interactive 3D preview">
+        <div class="view-label">
+          SOLID PREVIEW <span>Drag to orbit · Scroll to zoom</span>
+        </div>
+        <div class="badge">Rust → cadrum → OpenCASCADE / WASM</div>
+      </section>
+    </main>
+    <script type="module" src="/web/main.js"></script>
+  </body>
+</html>

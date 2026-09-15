@@ -1,0 +1,15 @@
+{
+  "name": "models-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node tests/wasm.mjs",
+    "test:bilresa": "node tests/bilresa-wasm.mjs"
+  },
+  "dependencies": {
+    "three": "0.183.2",
+    "vite": "7.3.6"
+  }
+}

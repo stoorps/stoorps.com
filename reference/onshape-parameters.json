@@ -1,0 +1,178 @@
+[
+  {
+    "name": "num_switches_left",
+    "expression": "1"
+  },
+  {
+    "name": "num_switches_right",
+    "expression": "1"
+  },
+  {
+    "name": "switch_pitch",
+    "expression": "4 mm"
+  },
+  {
+    "name": "switch_width",
+    "expression": "39.85 mm"
+  },
+  {
+    "name": "switch_height",
+    "expression": "70 mm"
+  },
+  {
+    "name": "switch_depth",
+    "expression": "18 mm"
+  },
+  {
+    "name": "switch_tolerance",
+    "expression": "0.1 mm"
+  },
+  {
+    "name": "mag_width",
+    "expression": "16.93 mm"
+  },
+  {
+    "name": "mag_height",
+    "expression": "46.88 mm"
+  },
+  {
+    "name": "mag_thickness",
+    "expression": "0.56 mm"
+  },
+  {
+    "name": "mag_xy_tolerance",
+    "expression": "0.01 mm"
+  },
+  {
+    "name": "mag_adhesive_tolerance",
+    "expression": "0.3 mm"
+  },
+  {
+    "name": "sp_width",
+    "expression": "85.60 mm"
+  },
+  {
+    "name": "sp_height",
+    "expression": "85.35 mm"
+  },
+  {
+    "name": "sp_depth",
+    "expression": "8.19 mm"
+  },
+  {
+    "name": "sp_tolerance",
+    "expression": "0.2 mm"
+  },
+  {
+    "name": "sp_cluster_height",
+    "expression": "27.45 mm"
+  },
+  {
+    "name": "sp_cluster_width",
+    "expression": "31.9 mm"
+  },
+  {
+    "name": "sp_cluster_depth",
+    "expression": "6.6 mm"
+  },
+  {
+    "name": "sp_cluster_tolerance",
+    "expression": "0.01 mm"
+  },
+  {
+    "name": "sp_screw_offset_x",
+    "expression": "11.69 mm"
+  },
+  {
+    "name": "sp_screw_offset_y",
+    "expression": "0"
+  },
+  {
+    "name": "sp_screw_head_d",
+    "expression": "6.3 mm"
+  },
+  {
+    "name": "sp_screw_shaft_d",
+    "expression": "3.1 mm"
+  },
+  {
+    "name": "sp_screw_shaft_tol",
+    "expression": "0.2 mm"
+  },
+  {
+    "name": "bracket_rail_z_offset",
+    "expression": "3.5 mm"
+  },
+  {
+    "name": "bracket_rail_z_thickness",
+    "expression": "2.5 mm"
+  },
+  {
+    "name": "bracket_rail_stopper_relief",
+    "expression": "3mm"
+  },
+  {
+    "name": "bracket_rail_width",
+    "expression": "3 mm"
+  },
+  {
+    "name": "bracket_rail_tolerance",
+    "expression": "0.2 mm"
+  },
+  {
+    "name": "asm_wall_thickness",
+    "expression": "2.5 mm"
+  },
+  {
+    "name": "asm_left_switch_w_total",
+    "expression": "((#switch_width + (#switch_tolerance * 2) + #switch_pitch) * #num_switches_left) + #switch_pitch"
+  },
+  {
+    "name": "asm_right_switch_w_total",
+    "expression": "((#switch_width + (#switch_tolerance * 2) + #switch_pitch) * #num_switches_right) + #switch_pitch"
+  },
+  {
+    "name": "asm_width",
+    "expression": "(#sp_width + (#sp_tolerance + #asm_wall_thickness + #bracket_rail_width + #bracket_rail_tolerance  + #asm_wall_thickness) *2) + #asm_left_switch_w_total + #asm_right_switch_w_total"
+  },
+  {
+    "name": "asm_height",
+    "expression": "#sp_height + ((#sp_tolerance + #asm_wall_thickness)*2)"
+  },
+  {
+    "name": "asm_sp_clearance",
+    "expression": "#sp_depth + #sp_tolerance"
+  },
+  {
+    "name": "asm_cluster_clearance",
+    "expression": "#asm_sp_clearance + #sp_cluster_depth + #sp_cluster_tolerance"
+  },
+  {
+    "name": "asm_total_depth",
+    "expression": "#switch_depth + #switch_tolerance + (#asm_wall_thickness *2)"
+  },
+  {
+    "name": "asm_cover_section_depth",
+    "expression": "#asm_cluster_clearance + #sp_cluster_tolerance"
+  },
+  {
+    "name": "cover_tolerance",
+    "expression": "0.05 mm"
+  },
+  {
+    "name": "cover_if_depth",
+    "expression": "1.5 mm"
+  },
+  {
+    "name": "cover_if_extension",
+    "expression": "#cover_if_depth + 0.125mm"
+  },
+  {
+    "name": "asm_corner_fillets",
+    "expression": "20 mm"
+  },
+  {
+    "name": "asm_face_fillets",
+    "expression": "2.5 mm"
+  }
+]

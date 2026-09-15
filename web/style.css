@@ -1,0 +1,170 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+  color: #203635;
+  background: #f4f4ef;
+}
+main {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  min-height: 100vh;
+}
+aside {
+  padding: 42px 32px;
+  border-right: 1px solid #d3dbd6;
+  background: #fcfcf8;
+}
+h1 {
+  font-size: 36px;
+  line-height: 1.12;
+  letter-spacing: -1.5px;
+  margin: 24px 0;
+}
+.eyebrow,
+.view-label,
+.badge {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+.eyebrow {
+  color: #647d72;
+}
+.intro,
+.note {
+  color: #60716b;
+}
+.intro {
+  margin-bottom: 32px;
+}
+label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0;
+}
+input {
+  width: 100px;
+  padding: 10px 8px;
+  border: 1px solid #c8d5cc;
+  border-radius: 6px;
+  background: white;
+  font: inherit;
+  color: inherit;
+}
+input:focus {
+  outline: 2px solid #569c86;
+}
+#status {
+  margin-top: 30px;
+  font-size: 13px;
+}
+#metrics {
+  font-size: 12px;
+  min-height: 36px;
+  color: #60716b;
+}
+.exports {
+  display: flex;
+  gap: 8px;
+}
+button {
+  background: #245f4d;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.note {
+  font-size: 12px;
+}
+#viewport {
+  position: relative;
+  min-height: 500px;
+  overflow: hidden;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.view-label {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  right: 30px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.view-label span {
+  letter-spacing: 0;
+  color: #60716b;
+}
+.badge {
+  position: absolute;
+  bottom: 26px;
+  left: 30px;
+  font-size: 10px;
+  pointer-events: none;
+}
+@media (max-width: 760px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    padding: 24px;
+  }
+  h1 br {
+    display: none;
+  }
+  #viewport {
+    height: 60vh;
+  }
+  form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 18px;
+  }
+  .view-label span {
+    display: none;
+  }
+}
+select {
+  max-width: 165px;
+  padding: 8px;
+  border: 1px solid #c8d5cc;
+  border-radius: 6px;
+  background: white;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.explode {
+  font-size: 13px;
+}
+.explode input {
+  width: auto;
+}
+a {
+  color: #245f4d;
+}
+#viewport {
+  height: 100vh;
+}
+@media (max-width: 760px) {
+  #viewport {
+    height: 60vh;
+  }
+}

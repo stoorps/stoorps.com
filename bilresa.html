@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BILRESA switch cover · Models</title>
+  </head>
+  <body>
+    <main>
+      <aside>
+        <p class="eyebrow">MODELS / 002</p>
+        <h1>BILRESA<br />switch cover.</h1>
+        <p class="intro">
+          Your wall switch stays accessible behind a sliding door. Add BILRESA
+          remotes on either side.
+        </p>
+        <form id="parameters">
+          <label
+            >Switches on left<input
+              name="left"
+              type="number"
+              min="0"
+              max="8"
+              step="1"
+              value="1"
+              required /></label
+          ><label
+            >Switches on right<input
+              name="right"
+              type="number"
+              min="0"
+              max="8"
+              step="1"
+              value="1"
+              required
+          /></label>
+        </form>
+        <p class="note">
+          An empty side keeps its 4 mm margin. Dimensions and clearances use
+          your existing design.
+        </p>
+        <label
+          >View / export<select id="part">
+            <option value="-1">All three parts</option>
+            <option value="0">Main body</option>
+            <option value="1">Blanking plate</option>
+            <option value="2">Cover top</option>
+          </select></label
+        >
+        <label class="explode"
+          >Separate parts in preview<input id="explode" type="checkbox"
+        /></label>
+        <p id="status" role="status">Loading geometry engine…</p>
+        <p id="metrics"></p>
+        <div class="exports">
+          <button id="step" disabled>Export STEP</button
+          ><button id="stl" disabled>Export STL</button>
+        </div>
+        <p class="note" id="export-note">
+          STEP includes all three solids. Select one part to export a printable
+          STL.
+        </p>
+        <p class="note">
+          Geometry checked; physical fit not yet tested. <a href="/">Box demo</a>
+        </p>
+      </aside>
+      <section id="viewport" aria-label="Interactive 3D preview">
+        <div class="view-label">
+          THREE-PART ASSEMBLY <span>Drag to orbit · Scroll to zoom</span>
+        </div>
+        <div class="badge">Rust → cadrum → OpenCASCADE / WASM</div>
+      </section>
+    </main>
+    <script type="module" src="/web/bilresa.js"></script>
+  </body>
+</html>
