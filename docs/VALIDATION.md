@@ -127,3 +127,47 @@ Executed checks:
 The development server briefly served an outdated dependency URL after the lockfile changed; the clean production build's ZIP export passed. Framework files generate build-time unused-import notices and the viewer chunk triggers Vite's size advisory. The geometry engine remains a substantial separate WASM download and is not initialised on the personal pages.
 
 Not executed: Firefox/Safari compatibility, physical printing, creator uploads/accounts, a public deployment or a long-running memory soak. The Pages workflow is prepared with manual deployment; the target repository has not been configured in this workspace.
+
+## Configurator revision 2 — 15 September 2026
+
+The model now exposes plate dimensions and eight Advanced settings alongside independent 0–4 counts. Defaults retain the reference shape. The catalogue defines decimal increments, groups, help text and limits; Rust validates numeric ranges and checks rail depth/material relationships. Compatible count-only revision-1 links migrate explicitly; older counts above four are rejected with an explanation.
+
+Executed checks:
+
+- Nine site/catalogue/link test groups pass, including all 25 count pairs, decimal and Advanced overrides, revision migration and invalid increments.
+- Cargo workspace tests, TypeScript and the four-page static production build pass.
+- Seven count layouts and six dimensional/tolerance boundary combinations pass WASM export/reimport checks. Subset STEP exports contain exactly the requested two solids; empty/duplicate selections are rejected.
+- Independent native OCCT and trimesh validation passes for all 39 part pairs: valid solids, watertight single-component meshes, mesh/CAD volume agreement within 0.5%, and no pairwise assembled solid overlap. Default reference surface comparisons remain unchanged.
+- The low-clearance boundary initially revealed a blanking-plate/body overlap. A minimum 0.025 mm gap at the cover stop fixes this while preserving the original default geometry.
+- The browser worker passes 12 repeated builds, eight export operations (including a subset), invalid input rejection and teardown/restart.
+- Browser UI checks verify independently changing plate width/height, disabling the increment button at four, rejecting typed five, restoring defaults, independent visibility/export selection, mixed All states and disabled downloads with no selected parts.
+
+Overall displayed measurements use mesh extrema because conservative CAD bounding boxes overestimate fillets (the default body was reported as 185.40 × 93.67 mm instead of the actual mesh dimensions 182.10 × 90.37 mm). Nominal plate dimensions are returned by the model. Overall sizes remain approximate to mesh tessellation accuracy. Outline/Blueprint rendering is a preview with feature edges and silhouettes, not an exact CAD hidden-line drawing or a printable scale drawing.
+
+The STEP button completed its selected-parts export flow in the browser, but this run did not establish a newly saved file in Downloads. Export contents are verified by the worker and WASM/native suites above. Physical printing, cross-browser coverage and downloadable blueprint documents remain outside this pass.
+
+Visual checks: the 1920 × 1080 desktop preview, a 390 × 844 phone iframe and a 3840 × 2160 4K iframe render successfully. Phone controls stay in one column with no horizontal overflow; the preview fits above them. The 4K workspace fills the available height. Outline silhouettes render without browser shader errors. An Advanced clearance edit updates its slider, changed-setting badge and shared URL; the heading Copy Link button reports success.
+
+## Drawing-view refinements — 15 September 2026
+
+Build and TypeScript pass. Browser checks confirm default measurements in Outline and retention of an explicit off setting when switching to Blueprint, 0%/100% transparency endpoints, dark linework, and a fading grid in the top and side planes. No shader errors were reported. Desktop DOM measurements confirm the logo, model title and panel heading share the same left coordinate; stepper buttons end at the inside border and the configurator top border is 0 px. At a verified 390 px viewport, the drawing toolbar fits without horizontal overflow. Geometry and exports were not changed in this pass.
+
+### Workspace card accordion
+
+The design notes now share an exclusive accordion with the setup card. Browser checks confirmed one-open and all-closed states, stable viewer bounds when switching cards, independent desktop parameter scrolling, and a mobile sticky setup header at a 390px viewport without horizontal overflow. Download help opens as a native popover and dismisses with Escape. Solid mode clips to the same 16px radius as the cards. Build and TypeScript checks pass; export/geometry logic is unchanged.
+
+### Final page polish
+
+Card outer edges align with the wordmark/title (26px at the tested desktop width), and the first card and mode toolbar share the same top coordinate. Footer text is 12px. Customise uses a consistent 14px heading across states. Accordion transitions fade content out, animate measured card heights, then fade content in; rapid requests queue the latest target and reduced-motion preferences skip animation. Desktop and 390px mobile card interactions were checked; mobile has no horizontal overflow. Viewer footer captions were removed and modes reordered to Outline, Blueprint (2D), Solid. Build, TypeScript and whitespace checks pass.
+
+### Viewer part controls
+
+Explode and Measurements now have icons in the viewer toolbar. Explode is disabled in Blueprint (2D), with explanatory help, and retains its 3D preference. Parts opens a native popover anchored under its toolbar button; at 390px it becomes a bottom sheet (verified flush with the viewport bottom, no horizontal overflow). Visibility and export selection remain independent, multiple changes leave the picker open, export selection updates the STL count, and Escape dismisses the picker. Desktop/mobile browser checks, build, TypeScript and whitespace checks pass. The geometry and export implementation is unchanged.
+
+### Unified viewer
+
+Outline and Solid now share an orthographic orbit camera, with animated Front/Top/Side shortcuts. Browser checks verified Top and Side grids, appearance changes preserving orientation, keyboard and pointer rotation clearing the shortcut selection, and no graphics errors. Side/top grids activate within a small angular tolerance, with hysteresis and a fade; free rotation uses the front-plane grid. Mobile uses two rows with labelled orientation controls and five accessible icon actions; 390px viewport has no horizontal overflow. Transparency defaults to 35% in a popover. Routine download status is screen-reader-only; errors remain visible. Build, TypeScript and whitespace checks pass.
+
+### Orientation escape and mobile action placement
+
+OrbitControls caches its camera-up basis at construction. It is now rebuilt after orientation fitting/transitions, preserving target and control settings. Browser checks confirmed horizontal and vertical drags both leave Top and Side views. Reset view clears orientation and restores the default angle and framing. Mobile action-bar edges match the 24px title gutter; V2 and the information button balance the centred download buttons. Mobile viewport 390px has no horizontal overflow. Explode uses a burst icon, Reset view uses a reset arrow, and the desktop version label is V2.

@@ -49,6 +49,20 @@ for case in json.loads(Path('artifacts/bilresa/wasm-validation.json').read_text(
     overlap = [abs(volume(BRepAlgoAPI_Common(a,b).Shape())) for a,b in combinations(solids,2)]
     assert max(overlap) < 1e-6, (prefix, overlap)
     reports.append(dict(counts=[case['left'],case['right']], valid_solids=3, closed_meshes=3, overlap_mm3=overlap))
+parameter_reports = []
+for index in range(6):
+    solids = []
+    for part in range(3):
+        base = Path(f'artifacts/bilresa-parameters/{index}-{part}')
+        solid = read(base.with_suffix('.step'), 1)[0]
+        solids.append(solid)
+        mesh = trimesh.load(base.with_suffix('.stl'), force='mesh')
+        assert mesh.is_volume and mesh.is_watertight and mesh.is_winding_consistent, str(base)
+        assert len(mesh.split()) == 1, str(base)
+        assert abs(mesh.volume-volume(solid))/volume(solid) < .005, str(base)
+    overlap = [abs(volume(BRepAlgoAPI_Common(a,b).Shape())) for a,b in combinations(solids,2)]
+    assert max(overlap) < 1e-6, (index, overlap)
+    parameter_reports.append(dict(case=index, valid_solids=3, closed_meshes=3, overlap_mm3=overlap))
 comparison = []
 for i, name in enumerate(['Part 1','Blanking Plate','Cover Top']):
     source = Path(f'models/bilresa/reference/one-each-{i}.stl')
@@ -59,6 +73,6 @@ for i, name in enumerate(['Part 1','Blanking Plate','Cover Top']):
         points = trimesh.sample.sample_surface(a, 2000, seed=42)[0]
         distances.extend(trimesh.proximity.closest_point(b, points)[1])
     comparison.append(dict(part=name, reference_file=str(source), volume_difference_percent=100*(generated.volume/reference.volume-1), sampled_surface_max_mm=float(np.max(distances)), sampled_surface_rms_mm=float(np.sqrt(np.mean(np.square(distances))))))
-result = dict(cases=reports, reference_comparison=comparison)
+result = dict(parameter_cases=parameter_reports, cases=reports, reference_comparison=comparison)
 Path('artifacts/bilresa/independent-validation.json').write_text(json.dumps(result,indent=2))
 print(json.dumps(result,indent=2))

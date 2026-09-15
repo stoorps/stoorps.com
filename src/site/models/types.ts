@@ -1,6 +1,10 @@
 export type Parameters = Record<string, number>;
 export type ParameterDefinition = {
   key: string;
+  unit?: string;
+  group?: string;
+  help?: string;
+  advanced?: boolean;
   label: string;
   default: number;
   min: number;
@@ -41,7 +45,7 @@ export function validateParameters(
       ) > 1e-8
     )
       throw new Error(
-        `${p.label}: use a whole number from ${p.min} to ${p.max}.`,
+        `${p.label}: use ${p.min}–${p.max}${p.unit ? ` ${p.unit}` : ""}, in steps of ${p.step}.`,
       );
   }
 }

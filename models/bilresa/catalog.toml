@@ -1,5 +1,5 @@
 id = "bilresa"
-revision = 1
+revision = 2
 title = "BILRESA switch cover (UK)"
 description = "A renter-friendly smart home upgrade."
 
@@ -14,16 +14,150 @@ key = "num_switches_left"
 label = "BILRESAs on left"
 default = 1
 min = 0
-max = 8
+max = 4
 step = 1
+group = "Layout"
 
 [[parameters]]
 key = "num_switches_right"
 label = "BILRESAs on right"
 default = 1
 min = 0
-max = 8
+max = 4
 step = 1
+group = "Layout"
+
+[[parameters]]
+key = "sp_width"
+label = "Width"
+default = 85.6
+min = 75
+max = 120
+step = 0.01
+unit = "mm"
+group = "Switch plate"
+advanced = false
+help = "Measure the outside width of the wall plate."
+
+[[parameters]]
+key = "sp_height"
+label = "Height"
+default = 85.35
+min = 80
+max = 120
+step = 0.01
+unit = "mm"
+group = "Switch plate"
+advanced = false
+help = "Measure the outside height of the wall plate."
+
+[[parameters]]
+key = "sp_depth"
+label = "Depth"
+default = 8.19
+min = 6
+max = 10
+step = 0.01
+unit = "mm"
+group = "Switch plate"
+advanced = false
+help = "Distance the plate projects from the wall."
+
+[[parameters]]
+key = "switch_tolerance"
+label = "BILRESA clearance"
+default = 0.1
+min = 0.05
+max = 0.4
+step = 0.01
+unit = "mm"
+group = "Fit"
+advanced = true
+help = "Extra space on each side of a remote."
+
+[[parameters]]
+key = "sp_tolerance"
+label = "Plate clearance"
+default = 0.2
+min = 0.1
+max = 0.4
+step = 0.01
+unit = "mm"
+group = "Fit"
+advanced = true
+help = "Extra space on each side of the wall plate."
+
+[[parameters]]
+key = "bracket_rail_tolerance"
+label = "Rail clearance"
+default = 0.2
+min = 0.1
+max = 0.4
+step = 0.01
+unit = "mm"
+group = "Fit"
+advanced = true
+help = "Clearance around the sliding cover rails."
+
+[[parameters]]
+key = "cover_tolerance"
+label = "Cover clearance"
+default = 0.05
+min = 0.02
+max = 0.2
+step = 0.01
+unit = "mm"
+group = "Fit"
+advanced = true
+help = "Gap at the removable cover joint."
+
+[[parameters]]
+key = "mag_xy_tolerance"
+label = "Magnetic plate clearance"
+default = 0.01
+min = 0.01
+max = 0.3
+step = 0.01
+unit = "mm"
+group = "Mounting"
+advanced = true
+help = "Extra space around the supplied magnetic plate."
+
+[[parameters]]
+key = "mag_adhesive_tolerance"
+label = "Adhesive recess"
+default = 0.3
+min = 0.1
+max = 0.8
+step = 0.01
+unit = "mm"
+group = "Mounting"
+advanced = true
+help = "Recess depth for adhesive. The default still needs physical measurement."
+
+[[parameters]]
+key = "asm_wall_thickness"
+label = "Wall thickness"
+default = 2.5
+min = 2.5
+max = 4
+step = 0.1
+unit = "mm"
+group = "Structure"
+advanced = true
+help = "Base thickness; outer walls grow with this setting."
+
+[[parameters]]
+key = "switch_pitch"
+label = "Remote spacing"
+default = 4
+min = 4
+max = 8
+step = 0.1
+unit = "mm"
+group = "Structure"
+advanced = true
+help = "Material between remote pockets; retained on empty sides."
 
 [[parts]]
 id = "body"

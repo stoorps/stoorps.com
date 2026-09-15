@@ -37,19 +37,22 @@ function ModelPage() {
   return (
     <main id="main" className="model-page">
       <div className="model-title">
+        <div className="model-identity">
         <Link to="/" className="breadcrumb">
           ← All projects
         </Link>
-        <div>
+        <div className="model-heading-row">
           <h1>
             {model.title}
             <span className="title-dot">.</span>
           </h1>
-          <span className="pill">
-            Revision {model.revision} · {model.parts.length} parts
+          <span className="pill title-version">
+            V{model.revision}
           </span>
         </div>
         <p>{model.description}</p>
+        </div>
+        <div id="model-downloads" />
       </div>
       <Suspense fallback={<PreviewPlaceholder />}>
         {client ? (
@@ -58,21 +61,7 @@ function ModelPage() {
           <PreviewPlaceholder />
         )}
       </Suspense>
-      <section className="model-notes">
-        <div>
-          <p className="eyebrow">About the design</p>
-          <h2>{model.title}</h2>
-          <p>{model.overview || model.description}</p>
-        </div>
-        <div>
-          <h3>Before you print</h3>
-          <p>
-            {model.print_notes ||
-              "Check the dimensions and tolerances for your printer before a full print."}
-          </p>
-          {model.source_url && <a href={model.source_url}>Original design ↗</a>}
-        </div>
-      </section>
+
     </main>
   );
 }

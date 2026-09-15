@@ -6,7 +6,7 @@ export const Route = createFileRoute("/about")({
 function About() {
   return (
     <main id="main" className="content about-page">
-      <p className="eyebrow">A little about me</p>
+      <Link to="/" className="about-back"><span aria-hidden="true">←</span> Back</Link>
       <h1>
         Software.
         <br />

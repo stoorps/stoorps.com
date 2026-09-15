@@ -6,6 +6,8 @@ export class GeometryEngine {
     { type: "module" },
   );
   private sequence = 0;
+  private latestBuild = 0;
+  private buildTail: Promise<unknown> = Promise.resolve();
   private dead = false;
   private pending = new Map<
     number,
@@ -60,14 +62,23 @@ export class GeometryEngine {
     });
   }
   build(model: ModelDefinition, params: Parameters) {
-    return this.request<BuildResult>({
-      type: "build",
-      model: model.id,
-      revision: model.revision,
-      params,
-    });
+    const ticket = ++this.latestBuild;
+    const task = this.buildTail
+      .catch(() => {})
+      .then(() => {
+        if (ticket !== this.latestBuild)
+          throw new Error("Configuration superseded by a newer edit.");
+        return this.request<BuildResult>({
+          type: "build",
+          model: model.id,
+          revision: model.revision,
+          params,
+        });
+      });
+    this.buildTail = task;
+    return task;
   }
-  export(part: number, format: ExportFormat) {
+  export(part: number | number[], format: ExportFormat) {
     return this.request<Uint8Array>({ type: "export", part, format });
   }
   private shutdown(reason: Error) {

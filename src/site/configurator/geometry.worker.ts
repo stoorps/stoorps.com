@@ -67,18 +67,41 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
       try {
         for (let i = 0; i < model.parts.length; i++)
           nextParts.push(next.part(i));
-        const meshes = nextParts.map((p) => ({
-          positions: p.positions(),
-          normals: p.normals(),
-          indices: p.indices(),
-          volume: p.volume(),
-        }));
+        const meshes = nextParts.map((p) => {
+          const positions = p.positions();
+          // CAD bounding boxes can conservatively expand around fillets. The
+          // displayed dimensions use assembled tessellation bounds instead.
+          const bounds = [
+            Infinity,
+            Infinity,
+            Infinity,
+            -Infinity,
+            -Infinity,
+            -Infinity,
+          ];
+          for (let i = 0; i < positions.length; i++) {
+            const axis = i % 3;
+            bounds[axis] = Math.min(bounds[axis], positions[i]);
+            bounds[axis + 3] = Math.max(bounds[axis + 3], positions[i]);
+          }
+          return {
+            positions,
+            normals: p.normals(),
+            indices: p.indices(),
+            volume: p.volume(),
+            bounds,
+          };
+        });
         dispose();
         assembly = next;
         parts = nextParts;
         const message: Response = {
           id: data.id,
-          result: { parts: meshes, milliseconds: performance.now() - started },
+          result: {
+            parts: meshes,
+            measurements: JSON.parse(next.measurements_json()),
+            milliseconds: performance.now() - started,
+          },
         };
         scope.postMessage(
           message,
@@ -97,7 +120,20 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
       if (!assembly) throw new Error("Build a configuration before exporting.");
       if (data.format !== "step" && data.format !== "stl")
         throw new Error("Unsupported export format.");
-      if (data.part === -1 && data.format === "step")
+      if (Array.isArray(data.part)) {
+        if (
+          !data.part.length ||
+          new Set(data.part).size !== data.part.length ||
+          data.part.some((i) => !Number.isInteger(i) || !parts[i])
+        )
+          throw new Error("Select valid parts for export.");
+        if (data.format !== "step")
+          throw new Error("Select a single part for STL.");
+        respond({
+          id: data.id,
+          result: assembly.step_selected(new Uint32Array(data.part)),
+        });
+      } else if (data.part === -1 && data.format === "step")
         respond({ id: data.id, result: assembly.step() });
       else if (Number.isInteger(data.part) && parts[data.part])
         respond({

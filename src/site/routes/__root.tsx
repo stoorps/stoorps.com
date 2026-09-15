@@ -4,6 +4,7 @@ import {
   Link,
   Outlet,
   Scripts,
+  useLocation,
 } from "@tanstack/react-router";
 import { site } from "../site";
 import stylesheet from "../styles.css?url";
@@ -41,6 +42,9 @@ export const Route = createRootRoute({
   ),
 });
 function Root() {
+  const minimalNavigation = useLocation({
+    select: (location) => ["/", "/about"].includes(location.pathname.replace(/\/$/, "") || "/"),
+  });
   return (
     <html lang="en">
       <head>
@@ -60,7 +64,7 @@ function Root() {
         >
           Skip to content
         </a>
-        <header className="site-header">
+        {!minimalNavigation && <header className="site-header">
           <Link to="/" className="wordmark" aria-label="stoorps home">
             stoorps<span className="wordmark-dot">.</span>
           </Link>
@@ -73,16 +77,16 @@ function Root() {
               GitHub <span aria-hidden="true">↗</span>
             </a>
           </nav>
-        </header>
+        </header>}
         <Outlet />
-        <footer className="site-footer">
-          <span>
+        <footer className={`site-footer${minimalNavigation ? " minimal-footer" : ""}`}>
+          {!minimalNavigation && <span>
             stoorps <span className="muted">/ Things I make</span>
-          </span>
+          </span>}
           <div>
-            <a href="https://mastodon.social/@stoorps" rel="me">
+            {!minimalNavigation && <a href="https://mastodon.social/@stoorps" rel="me">
               Mastodon ↗
-            </a>
+            </a>}
             <Link to="/licenses">Open-source notices</Link>
           </div>
         </footer>

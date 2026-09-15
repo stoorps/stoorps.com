@@ -47,20 +47,20 @@ impl Default for BilresaParameters {
         Self {
             num_switches_left: NUM_SWITCHES_LEFT_DEFAULT,
             num_switches_right: NUM_SWITCHES_RIGHT_DEFAULT,
-            switch_pitch: 4.0,
+            switch_pitch: SWITCH_PITCH_DEFAULT,
             switch_width: 39.85,
             switch_height: 70.0,
             switch_depth: 18.0,
-            switch_tolerance: 0.1,
+            switch_tolerance: SWITCH_TOLERANCE_DEFAULT,
             mag_width: 16.93,
             mag_height: 46.88,
             mag_thickness: 0.56,
-            mag_xy_tolerance: 0.01,
-            mag_adhesive_tolerance: 0.3,
-            sp_width: 85.6,
-            sp_height: 85.35,
-            sp_depth: 8.19,
-            sp_tolerance: 0.2,
+            mag_xy_tolerance: MAG_XY_TOLERANCE_DEFAULT,
+            mag_adhesive_tolerance: MAG_ADHESIVE_TOLERANCE_DEFAULT,
+            sp_width: SP_WIDTH_DEFAULT,
+            sp_height: SP_HEIGHT_DEFAULT,
+            sp_depth: SP_DEPTH_DEFAULT,
+            sp_tolerance: SP_TOLERANCE_DEFAULT,
             sp_cluster_height: 27.45,
             sp_cluster_width: 31.9,
             sp_cluster_depth: 6.6,
@@ -74,9 +74,9 @@ impl Default for BilresaParameters {
             bracket_rail_z_thickness: 2.5,
             bracket_rail_stopper_relief: 3.0,
             bracket_rail_width: 3.0,
-            bracket_rail_tolerance: 0.2,
-            asm_wall_thickness: 2.5,
-            cover_tolerance: 0.05,
+            bracket_rail_tolerance: BRACKET_RAIL_TOLERANCE_DEFAULT,
+            asm_wall_thickness: ASM_WALL_THICKNESS_DEFAULT,
+            cover_tolerance: COVER_TOLERANCE_DEFAULT,
             cover_if_depth: 1.5,
             asm_corner_fillets: 20.0,
             asm_face_fillets: 2.5,
@@ -173,14 +173,15 @@ fn rounded_box(x0: f64, x1: f64, y0: f64, y1: f64, z0: f64, z1: f64, r: f64) -> 
 pub fn build(p: &BilresaParameters) -> ModelResult<Vec<Solid>> {
     if p.num_switches_left > NUM_SWITCHES_LEFT_MAX || p.num_switches_right > NUM_SWITCHES_RIGHT_MAX
     {
-        return Err("Use 0–8 switches per side for this spike.".into());
+        return Err("Use 0–4 BILRESAs per side.".into());
     }
+    validate(p)?;
     let d = p.dimensions();
     let half_plate = (p.sp_width + 2.0 * p.sp_tolerance) / 2.0;
     let half_height = (p.sp_height + 2.0 * p.sp_tolerance) / 2.0;
-    // The source outer horizontal sketch lines are not tied to asm_height.
-    // Keep their measured separation; only counts are exposed in this spike.
-    let outer_y = 45.185;
+    // Preserve the reference 2.31 mm edge wall, then grow with wall thickness.
+    let outer_y = half_height + p.asm_wall_thickness - 0.19;
+    let rail_half_height = half_height + 0.125;
     let x0 = -half_plate - d.asm_left_switch_w_total;
     let x1 = half_plate + d.asm_right_switch_w_total;
     let depth = d.asm_total_depth;
@@ -278,7 +279,7 @@ pub fn build(p: &BilresaParameters) -> ModelResult<Vec<Solid>> {
     for (a, b) in [(-rail_x, -half_plate), (half_plate, rail_x)] {
         body = cut(
             &body,
-            &cube(a, b, -half_plate, outer_y + 1.0, rail_z, rail_top),
+            &cube(a, b, -rail_half_height, outer_y + 1.0, rail_z, rail_top),
         )?;
     }
     let blank_half = (p.sp_width + 2.0 * (p.sp_tolerance + p.bracket_rail_width)
@@ -288,8 +289,8 @@ pub fn build(p: &BilresaParameters) -> ModelResult<Vec<Solid>> {
     let blank = cube(
         -blank_half,
         blank_half,
-        -half_plate + p.bracket_rail_tolerance,
-        half_plate + p.cover_if_depth,
+        -half_height + (p.bracket_rail_tolerance - 0.125).max(0.025),
+        rail_half_height + p.cover_if_depth,
         blank_z,
         blank_z + p.bracket_rail_z_thickness,
     );
@@ -334,7 +335,7 @@ pub fn build(p: &BilresaParameters) -> ModelResult<Vec<Solid>> {
             -rail_x - 1.0,
             rail_x + 1.0,
             half_height - 1.0,
-            half_plate + p.cover_if_depth + p.cover_tolerance,
+            rail_half_height + p.cover_if_depth + p.cover_tolerance,
             blank_z - p.cover_tolerance,
             blank_z + p.bracket_rail_z_thickness + p.cover_tolerance,
         ),
@@ -354,40 +355,81 @@ pub fn catalog_json() -> String {
     CATALOG_JSON.into()
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Counts {
-    num_switches_left: u32,
-    num_switches_right: u32,
+pub fn validate(p: &BilresaParameters) -> ModelResult<()> {
+    let values = serde_json::to_value(p).map_err(|e| e.to_string())?;
+    let catalog: serde_json::Value = serde_json::from_str(CATALOG_JSON).unwrap();
+    for param in catalog["parameters"].as_array().unwrap() {
+        let key = param["key"].as_str().unwrap();
+        let v = values[key].as_f64().ok_or("Invalid numeric parameter")?;
+        let min = param["min"].as_f64().unwrap();
+        let max = param["max"].as_f64().unwrap();
+        let step = param["step"].as_f64().unwrap();
+        if !v.is_finite()
+            || v < min
+            || v > max
+            || ((v - min) / step - ((v - min) / step).round()).abs() > 1e-7
+        {
+            return Err(format!(
+                "{}: use {min}–{max} in steps of {step}.",
+                param["label"].as_str().unwrap()
+            ));
+        }
+    }
+    let d = p.dimensions();
+    if d.asm_cluster_clearance
+        + p.bracket_rail_z_thickness
+        + p.bracket_rail_tolerance
+        + p.cover_tolerance
+        >= d.asm_total_depth - 2.0 * p.sp_tolerance
+    {
+        return Err("The plate is too deep for the cover rails. Reduce plate depth or increase wall thickness.".into());
+    }
+    if p.sp_height + 2.0 * p.sp_tolerance <= p.switch_height + 2.0 * p.switch_tolerance + 4.0 {
+        return Err(
+            "The plate height leaves too little material around the remote pockets.".into(),
+        );
+    }
+    Ok(())
 }
 
 #[wasm_bindgen]
 pub struct Model {
     solids: Vec<Solid>,
+    measurements: String,
 }
 #[wasm_bindgen]
 impl Model {
     #[wasm_bindgen(constructor)]
     pub fn new(parameters: &str) -> Result<Model, JsValue> {
-        let counts: Counts =
+        let input: serde_json::Map<String, serde_json::Value> =
             serde_json::from_str(parameters).map_err(|e| JsValue::from_str(&e.to_string()))?;
-        if counts.num_switches_left < NUM_SWITCHES_LEFT_MIN
-            || counts.num_switches_left > NUM_SWITCHES_LEFT_MAX
-            || counts.num_switches_right < NUM_SWITCHES_RIGHT_MIN
-            || counts.num_switches_right > NUM_SWITCHES_RIGHT_MAX
-        {
-            return Err(JsValue::from_str(
-                "Switch counts must be whole numbers from 0 to 8.",
-            ));
+        let catalog: serde_json::Value = serde_json::from_str(CATALOG_JSON).unwrap();
+        for key in input.keys() {
+            if !catalog["parameters"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|p| p["key"].as_str() == Some(key))
+            {
+                return Err(JsValue::from_str("Unknown model parameter"));
+            }
         }
-        let p = BilresaParameters {
-            num_switches_left: counts.num_switches_left,
-            num_switches_right: counts.num_switches_right,
-            ..Default::default()
-        };
+        let p: BilresaParameters = serde_json::from_value(serde_json::Value::Object(input))
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        let hx = p.sp_width / 2.0;
+        let hy = p.sp_height / 2.0;
+        let measurements = serde_json::json!([
+            {"label":"Plate width", "value":p.sp_width,"from":[-hx,0.0,0.0],"to":[hx,0.0,0.0]},
+            {"label":"Plate height", "value":p.sp_height,"from":[0.0,-hy,0.0],"to":[0.0,hy,0.0]}
+        ])
+        .to_string();
         Ok(Self {
+            measurements,
             solids: build(&p).map_err(|e| JsValue::from_str(&e))?,
         })
+    }
+    pub fn measurements_json(&self) -> String {
+        self.measurements.clone()
     }
     pub fn part(&self, index: usize) -> Result<model_engine::Part, JsValue> {
         let solid = self
@@ -395,6 +437,26 @@ impl Model {
             .get(index)
             .ok_or_else(|| JsValue::from_str("Unknown part"))?;
         model_engine::Part::from_solid(solid.clone())
+    }
+    pub fn step_selected(&self, selection: &[u32]) -> Result<Vec<u8>, JsValue> {
+        if selection.is_empty() {
+            return Err(JsValue::from_str("Select at least one part"));
+        }
+        let mut solids = Vec::new();
+        for (i, &index) in selection.iter().enumerate() {
+            if selection[..i].contains(&index) {
+                return Err(JsValue::from_str("Duplicate part"));
+            }
+            solids.push(
+                self.solids
+                    .get(index as usize)
+                    .ok_or_else(|| JsValue::from_str("Unknown part"))?
+                    .clone(),
+            );
+        }
+        let mut bytes = Vec::new();
+        Solid::write_step(&solids, &mut bytes).map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Ok(bytes)
     }
     pub fn step(&self) -> Result<Vec<u8>, JsValue> {
         let mut bytes = Vec::new();

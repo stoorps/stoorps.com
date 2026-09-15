@@ -8,10 +8,22 @@ fn main() {
         let key = parameter["key"].as_str().unwrap();
         assert!(key.chars().all(|c| c.is_ascii_lowercase() || c == '_'));
         for field in ["default", "min", "max", "step"] {
-            let number = parameter[field].as_integer().expect("Integer count limits");
-            assert!(number >= 0 && number <= u32::MAX as i64);
+            let number = parameter[field]
+                .as_float()
+                .or_else(|| parameter[field].as_integer().map(|v| v as f64))
+                .expect("Numeric parameter");
+            let kind = if key.starts_with("num_") {
+                "u32"
+            } else {
+                "f64"
+            };
+            let literal = if kind == "u32" {
+                format!("{}", number as u32)
+            } else {
+                format!("{number:?}")
+            };
             generated.push_str(&format!(
-                "pub const {}_{}: u32 = {number};\n",
+                "pub const {}_{}: {kind} = {literal};\n",
                 key.to_uppercase(),
                 field.to_uppercase()
             ));

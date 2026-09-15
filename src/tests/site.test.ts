@@ -12,9 +12,13 @@ import {
 const encodeRaw = (value: unknown) =>
   Buffer.from(JSON.stringify(value)).toString("base64url");
 test("all supported count pairs round-trip, including zero and asymmetric counts", () => {
-  for (let left = 0; left <= 8; left++)
-    for (let right = 0; right <= 8; right++) {
-      const params = { num_switches_left: left, num_switches_right: right };
+  for (let left = 0; left <= 4; left++)
+    for (let right = 0; right <= 4; right++) {
+      const params = {
+        ...defaults(bilresa),
+        num_switches_left: left,
+        num_switches_right: right,
+      };
       const encoded = encodeConfiguration(bilresa, params);
       assert.match(encoded, /^[A-Za-z0-9_-]+$/);
       assert.deepEqual(decodeConfiguration(bilresa, encoded), params);
@@ -30,7 +34,7 @@ test("stores overrides against an explicit model and revision", () => {
   assert.deepEqual(value, {
     schema: 1,
     model: "bilresa",
-    modelRevision: 1,
+    modelRevision: 2,
     overrides: {},
   });
 });
@@ -38,7 +42,7 @@ test("links preserve origin, repository base, pathname and unrelated query", () 
   const url = new URL(
     configurationUrl(
       bilresa,
-      { num_switches_left: 2, num_switches_right: 0 },
+      { ...defaults(bilresa), num_switches_left: 2, num_switches_right: 0 },
       "https://example.com/models/designs/bilresa/?ref=test#old",
     ),
   );
@@ -46,6 +50,7 @@ test("links preserve origin, repository base, pathname and unrelated query", () 
   assert.equal(url.pathname, "/models/designs/bilresa/");
   assert.equal(url.search, "?ref=test");
   assert.deepEqual(parametersFromHash(bilresa, url.hash), {
+    ...defaults(bilresa),
     num_switches_left: 2,
     num_switches_right: 0,
   });
@@ -54,7 +59,7 @@ test("rejects malformed, oversized, duplicate, unknown and unsupported configura
   const valid = {
     schema: 1,
     model: "bilresa",
-    modelRevision: 1,
+    modelRevision: 2,
     overrides: {},
   };
   for (const value of [
@@ -124,5 +129,39 @@ test("copy edits preserve the geometry contract; limits and part identities do n
       parts: copy.parts.map((p) => ({ ...p, id: p.id + "-changed" })),
     }),
     geometryContract(bilresa),
+  );
+});
+
+test("decimal dimensions and advanced overrides round-trip; legacy counts migrate", () => {
+  const params = {
+    ...defaults(bilresa),
+    sp_width: 90.12,
+    sp_height: 103.45,
+    cover_tolerance: 0.12,
+  };
+  assert.deepEqual(
+    decodeConfiguration(bilresa, encodeConfiguration(bilresa, params)),
+    params,
+  );
+  const legacy = {
+    schema: 1,
+    model: "bilresa",
+    modelRevision: 1,
+    overrides: { num_switches_left: 3 },
+  };
+  assert.deepEqual(decodeConfiguration(bilresa, encodeRaw(legacy)), {
+    ...defaults(bilresa),
+    num_switches_left: 3,
+  });
+  assert.throws(
+    () =>
+      decodeConfiguration(
+        bilresa,
+        encodeRaw({ ...legacy, overrides: { num_switches_right: 5 } }),
+      ),
+    /four/,
+  );
+  assert.throws(() =>
+    encodeConfiguration(bilresa, { ...params, sp_width: 90.123 }),
   );
 });

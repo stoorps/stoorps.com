@@ -2,20 +2,22 @@
 import { GeometryEngine } from '../site/configurator/engine.ts';
 import { getModel } from '../generated/catalog.ts';
 const bilresa=getModel('bilresa');
+const defaults=Object.fromEntries(bilresa.parameters.map(p=>[p.key,p.default]));
 const result=document.querySelector('#result');
 let engine=new GeometryEngine();
 try {
 const reports=[];
 for(let i=0;i<12;i++) {
  const left=i%4,right=(i+1)%3;
- const built=await engine.build(bilresa,{num_switches_left:left,num_switches_right:right});
+ const built=await engine.build(bilresa,{...defaults,num_switches_left:left,num_switches_right:right});
  if(built.parts.length!==3||built.parts.some(p=>p.volume<=0||p.indices.length===0))throw new Error('Invalid preview');
  reports.push({left,right,milliseconds:Math.round(built.milliseconds)});
 }
 for(let i=-1;i<3;i++) {const step=await engine.export(i,'step');if(!new TextDecoder().decode(step).startsWith('ISO-10303-21'))throw new Error('Invalid STEP');}
 for(let i=0;i<3;i++) {const stl=await engine.export(i,'stl');if(stl.length<=84)throw new Error('Invalid STL');}
-let rejected=false;try{await engine.build(bilresa,{num_switches_left:1.5,num_switches_right:0})}catch{rejected=true;}if(!rejected)throw new Error('Invalid count accepted');
-engine.dispose();engine=new GeometryEngine();await engine.build(bilresa,{num_switches_left:1,num_switches_right:1});
-result.textContent=JSON.stringify({status:'PASS',repeatedBuilds:reports,exports:7,invalidRejected:true,restart:true},null,2);
+const subset=await engine.export([0,2],'step');if(!subset.length)throw new Error('Missing subset');
+let rejected=false;try{await engine.build(bilresa,{...defaults,num_switches_left:1.5,num_switches_right:0})}catch{rejected=true;}if(!rejected)throw new Error('Invalid count accepted');
+engine.dispose();engine=new GeometryEngine();await engine.build(bilresa,{...defaults,num_switches_left:1,num_switches_right:1});
+result.textContent=JSON.stringify({status:'PASS',repeatedBuilds:reports,exports:8,invalidRejected:true,restart:true},null,2);
 }catch(e){result.textContent='FAIL '+e.stack;}finally{engine.dispose();}
 </script></html>

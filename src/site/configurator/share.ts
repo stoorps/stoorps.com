@@ -62,7 +62,9 @@ export function decodeConfiguration(
     throw new Error("This link uses an unsupported configuration format.");
   if (value.model !== model.id)
     throw new Error("This link belongs to a different model.");
-  if (value.modelRevision !== model.revision)
+  const legacy =
+    model.id === "bilresa" && model.revision === 2 && value.modelRevision === 1;
+  if (value.modelRevision !== model.revision && !legacy)
     throw new Error(
       "This model revision is unavailable. The design has not been substituted.",
     );
@@ -75,6 +77,12 @@ export function decodeConfiguration(
       typeof valueOverride !== "number"
     )
       throw new Error("This configuration has unknown or invalid settings.");
+    if (legacy && !["num_switches_left", "num_switches_right"].includes(key))
+      throw new Error("This older link contains unsupported settings.");
+    if (legacy && valueOverride > 4)
+      throw new Error(
+        "This older layout uses more than four BILRESAs on a side. The current design supports 0–4; choose a new layout to continue.",
+      );
     params[key] = valueOverride;
   }
   validateParameters(model, params);

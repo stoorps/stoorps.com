@@ -21,7 +21,7 @@ for (const [left, right] of [
   [0, 0],
   [3, 1],
   [1, 3],
-  [8, 0],
+  [4, 0],
 ]) {
   const start = performance.now(),
     model = new Model(
@@ -80,7 +80,7 @@ console.log(JSON.stringify(reports, null, 2));
 
 const catalog = JSON.parse(catalog_json());
 assert(
-  catalog.id === "bilresa" && catalog.revision === 1,
+  catalog.id === "bilresa" && catalog.revision === 2,
   "Model metadata exported",
 );
 
@@ -102,4 +102,82 @@ strictAssert.deepEqual(
     (await readModels()).find((m) => m.catalog.id === "bilresa").catalog,
   ),
   "Compiled Rust and source TOML geometry settings match",
+);
+
+const variants = [
+  {
+    sp_width: 75,
+    sp_height: 80,
+    sp_depth: 6,
+    num_switches_left: 0,
+    num_switches_right: 0,
+  },
+  {
+    sp_width: 120,
+    sp_height: 120,
+    sp_depth: 10,
+    num_switches_left: 4,
+    num_switches_right: 4,
+  },
+  { sp_width: 100, sp_height: 80, num_switches_left: 0, num_switches_right: 4 },
+  { sp_width: 75, sp_height: 120, num_switches_left: 4, num_switches_right: 0 },
+  {
+    switch_tolerance: 0.4,
+    sp_tolerance: 0.4,
+    bracket_rail_tolerance: 0.4,
+    cover_tolerance: 0.2,
+    mag_xy_tolerance: 0.3,
+    mag_adhesive_tolerance: 0.8,
+    asm_wall_thickness: 4,
+    switch_pitch: 8,
+  },
+  {
+    switch_tolerance: 0.05,
+    sp_tolerance: 0.1,
+    bracket_rail_tolerance: 0.1,
+    cover_tolerance: 0.02,
+    mag_xy_tolerance: 0.01,
+    mag_adhesive_tolerance: 0.1,
+  },
+];
+await mkdir("artifacts/bilresa-parameters", { recursive: true });
+for (const [index, params] of variants.entries()) {
+  const model = new Model(JSON.stringify(params));
+  const assembly = JSON.parse(inspect_step(model.step()));
+  strictAssert.equal(assembly.solids.length, 3);
+  const subset = JSON.parse(
+    inspect_step(model.step_selected(new Uint32Array([0, 2]))),
+  );
+  strictAssert.equal(subset.solids.length, 2);
+  strictAssert.throws(() => model.step_selected(new Uint32Array([])));
+  strictAssert.throws(() => model.step_selected(new Uint32Array([0, 0])));
+  const measures = JSON.parse(model.measurements_json());
+  strictAssert.equal(measures[0].value, params.sp_width ?? 85.6);
+  for (let part = 0; part < 3; part++) {
+    const p = model.part(part);
+    strictAssert.ok(p.volume() > 0);
+    await writeFile(
+      `artifacts/bilresa-parameters/${index}-${part}.step`,
+      p.step(),
+    );
+    await writeFile(
+      `artifacts/bilresa-parameters/${index}-${part}.stl`,
+      p.stl(),
+    );
+    p.free();
+  }
+  model.free();
+}
+for (const params of [
+  { num_switches_left: 5 },
+  { sp_width: 74 },
+  { sp_height: 121 },
+  { sp_depth: 10.01 },
+  { cover_tolerance: 0.001 },
+  { sp_width: 90.123 },
+  { unknown: 1 },
+])
+  strictAssert.throws(() => new Model(JSON.stringify(params)));
+console.log(
+  "Expanded parameters: six boundary combinations, subset STEP, measurements and invalid values PASS",
 );

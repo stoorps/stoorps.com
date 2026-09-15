@@ -53,9 +53,26 @@ export function validateCatalog(value, directory) {
     )
       throw new Error(`${directory}: invalid or duplicate parameter`);
     keys.add(p.key);
+    for (const key of ["unit", "group", "help"])
+      if (p[key] !== undefined && typeof p[key] !== "string")
+        throw new Error(`${directory}: invalid parameter ${key}`);
+    if (p.advanced !== undefined && typeof p.advanced !== "boolean")
+      throw new Error(`${directory}: invalid advanced flag`);
     if (
       Object.keys(p).some(
-        (k) => !["key", "label", "default", "min", "max", "step"].includes(k),
+        (k) =>
+          ![
+            "key",
+            "label",
+            "default",
+            "min",
+            "max",
+            "step",
+            "unit",
+            "group",
+            "advanced",
+            "help",
+          ].includes(k),
       )
     )
       throw new Error(`${directory}: unknown parameter field`);

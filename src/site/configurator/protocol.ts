@@ -4,12 +4,24 @@ export type PartMesh = {
   normals: Float32Array;
   indices: Uint32Array;
   volume: number;
+  bounds: number[];
 };
-export type BuildResult = { parts: PartMesh[]; milliseconds: number };
+export type Measurement = {
+  approximate?: boolean;
+  label: string;
+  value: number;
+  from: [number, number, number];
+  to: [number, number, number];
+};
+export type BuildResult = {
+  parts: PartMesh[];
+  milliseconds: number;
+  measurements: Measurement[];
+};
 export type ExportFormat = "step" | "stl";
 export type Command =
   | { type: "build"; model: string; revision: number; params: Parameters }
-  | { type: "export"; part: number; format: ExportFormat }
+  | { type: "export"; part: number | number[]; format: ExportFormat }
   | { type: "dispose" };
 export type Request = Command & { id: number };
 export type Response =
@@ -22,12 +34,15 @@ export type PartInstance = {
   normals(): Float32Array;
   indices(): Uint32Array;
   volume(): number;
+  bounds(): Float64Array;
   step(): Uint8Array;
   stl(): Uint8Array;
   free(): void;
 };
 export type ModelInstance = {
   part(index: number): PartInstance;
+  measurements_json(): string;
+  step_selected(selection: Uint32Array): Uint8Array;
   step(): Uint8Array;
   free(): void;
 };

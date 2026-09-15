@@ -56,7 +56,7 @@ Each directory in `models/` contains a Cargo crate and `catalog.toml`. Build too
 
 See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
-BILRESA revision 1 generates three parts and supports independent counts of 0–8. Physical fit and the 0.3 mm adhesive allowance are not yet verified. Shared links record the model ID, schema version, model revision and parameter overrides.
+BILRESA revision 2 generates three parts, supports independent counts of 0–4, and exposes plate dimensions and advanced fit/structure settings. The preview offers Solid, Outline and orthographic Blueprint modes with optional measurements. Physical fit and the 0.3 mm adhesive allowance are not yet verified. Shared links record the model ID, schema version, model revision and parameter overrides.
 
 ## Cleanup and references
 
@@ -69,3 +69,5 @@ The obsolete root demo pages, `web/` UI/worker, central handwritten `catalog.ts`
 - `npm run dev:tests`: serves `/src/tests/product-browser.html` on port 5175.
 
 The deployment workflow remains manual. The existing stoorps.com repository, DNS and Vercel deployment have not been changed.
+
+Catalogue artwork is generated automatically during `npm run build` from each model's default WASM geometry. It uses the same outline palette, angle and transparency as the configurator, and is served as a static SVG. To refresh images alone, run `npm run previews:generate` after `npm run wasm:build`. No manually maintained model illustrations are needed.
