@@ -43,7 +43,7 @@ export const Route = createRootRoute({
 });
 function Root() {
   const minimalNavigation = useLocation({
-    select: (location) => ["/", "/about"].includes(location.pathname.replace(/\/$/, "") || "/"),
+    select: (location) => ["/", "/about", "/cv"].includes(location.pathname.replace(/\/$/, "") || "/"),
   });
   return (
     <html lang="en">
