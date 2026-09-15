@@ -1,7 +1,11 @@
 /target/
 /node_modules/
-/pkg/
 /dist/
 /artifacts/*
 !/artifacts/.gitkeep
 /.venv/
+/.tanstack/
+/src/site/routeTree.gen.ts
+/src/site/public/notices/geometry-source.zip
+
+/src/generated/

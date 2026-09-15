@@ -1,0 +1,25 @@
+GEOMETRY SOURCE AND REBUILD INFORMATION
+
+The compiled geometry uses cadrum 0.8.20 (MIT) and Open CASCADE Technology
+8.0.1 (LGPL 2.1 with the Open CASCADE additional exception).
+
+Application geometry sources and pinned build instructions are included in
+geometry-source.zip beside this file. The archive contains Cargo.toml,
+Cargo.lock, the model crates, shared engine and src/tools build scripts.
+
+cadrum source:
+https://crates.io/crates/cadrum/0.8.20
+https://github.com/lzpel/cadrum
+
+Open CASCADE source:
+https://github.com/Open-Cascade-SAS/OCCT/tree/V8_0_1
+
+The build uses the static OCCT prebuilt selected by cadrum's build script.
+To relink against a modified OCCT build, consult cadrum's OCCT_ROOT/source
+build settings and rebuild the application with the included build script.
+Run npm ci, then node src/tools/build-wasm.mjs.
+The build image digest and matching wasm-bindgen version are pinned there. No restriction on reverse engineering for debugging modifications
+to the LGPL-covered library is imposed by this site.
+
+This file records source provenance and rebuild information; it is not a
+substitute for the accompanying licence texts.

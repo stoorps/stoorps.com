@@ -1,53 +1,71 @@
-# Models: Rust/browser CAD spike
+# stoorps
 
-A box with a centred through-hole, authored in Rust, rebuilt client-side using cadrum and statically linked OpenCASCADE. Four millimetre controls, an orbitable Three.js preview, and STEP/STL downloads. No geometry backend.
+A personal site with model-scoped Rust CAD packages, a shared WASM engine and a TanStack Start configurator.
+
+## Layout
+
+```text
+models/
+  bilresa/
+    Cargo.toml          # independently buildable model crate
+    catalog.toml        # identity, revision, controls, parts and page copy
+    model.rs            # geometry and the model's WASM entry point
+    build.rs            # generates Rust constants from the catalogue
+    reference/          # original Onshape source and comparison meshes
+    examples/           # native export probe
+src/
+  engine/               # shared meshing, Part exports, STEP inspection
+  site/                 # TanStack pages, React configurator, public assets
+  tools/                # discovery, compilation, packaging and build checks
+  tests/                # link/catalogue/CAD validation and box fixture
+  generated/            # ignored: catalogue, model loaders, per-model WASM
+Cargo.toml              # Cargo workspace and shared dependencies
+justfile                # optional shortcuts
+```
+
+Standard npm, TypeScript and Vite configuration stays at the root. Research and validation notes live in `docs/`; generated builds/results live in ignored `dist/`, `target/` and `artifacts/` directories.
 
 ## Run
 
-Prerequisites: Docker, Rust/Cargo (to update the lockfile only), Node 22.12+ and npm.
+Node 24, npm and Docker are required for the WASM build.
 
 ```sh
-./scripts/build-wasm.sh
 npm ci
+npm run wasm:build
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. First build downloads the cross toolchain, OCCT prebuilt, Rust dependencies and the matching wasm-bindgen CLI. Subsequent builds reuse the `target` directory and named Cargo registry cache. `npm run build` makes static files in `dist`; rebuilding Rust requires rerunning the WASM build script before the frontend build.
+Open the URL printed by Vite, normally http://127.0.0.1:5173. Routes include `/`, `/about` and `/designs/bilresa`. Rebuild WASM after changing Rust or geometry-relevant metadata (defaults, limits, parameter keys or part identities). The development server regenerates its catalogue when TOML changes. Titles, descriptions, labels and colours update without recompiling; geometry-contract changes are rejected until WASM is rebuilt.
 
-## Design and execution
-
-- `src/lib.rs`: the actual model, Rust-side dimension validation, tessellation, in-memory STEP/STL writers and STEP reimport.
-- `web/worker.js`: loads one WASM instance; each change constructs a fresh OCCT box, subtracts a cylindrical cutter, and meshes the resulting BRep. It frees the previous Rust part after successful replacement.
-- `web/main.js`: debounces changes, discards stale results, updates the preview with the kernel's mesh, and downloads the current solid. Rust stays the modelling surface; JS only coordinates the worker, controls and rendering.
-- Valid dimensions: 0.5–200 mm; hole diameter at least 1 mm smaller than the narrower side. The cutter extends 1 mm beyond both end faces. The box defaults (40 × 30 × 12 mm, Ø10 mm) are demonstration values, unrelated to BILRESA.
-- STEP contains analytic CAD surfaces; STL has no unit declaration and must be imported in millimetres.
-
-## Checks
+## Check and build
 
 ```sh
-npm test
-# Browser worker suite: open http://127.0.0.1:5173/tests/browser.html
-# Independent import checks, after npm test:
-python3 -m venv .venv
-.venv/bin/pip install cadquery-ocp trimesh numpy networkx
-.venv/bin/python tests/validate_exports.py
+npm run test:all
+npm run build
+npm run typecheck
+npm run preview:static
 ```
 
-The tests cover five parameter sets, exact volume, bounding dimensions, STEP round trips preserving a cylindrical surface, and STL closed edges/orientation/volume. The independent reader additionally checks OCCT solid validity, three through-hole probes, connectedness and STL tunnel topology. Generated exports and machine-readable reports are in `artifacts/` (ignored by Git).
+The preview serves `dist/client` on port 4174. For a repository Pages site use `SITE_BASE_PATH=/repository-name/ npm run build`. Only publish `dist/client`; no application server is required.
 
-See `VALIDATION.md` for measured outcomes and limitations.
+`just wasm`, `just dev`, `just test`, `just build` and `just preview` wrap these commands if just is installed. `just rust-test` runs native Rust tests in a separate cache, avoiding the Docker-owned WASM build directory. Independent CAD readers can be run using `src/tests/validate_exports.py` and `src/tests/validate_bilresa.py` after generating test exports.
 
-## BILRESA configurator
+## Models
 
-Open http://127.0.0.1:5173/bilresa.html. Independent left/right counts (0–8 per side) regenerate three Rust-authored solids: main body, blanking plate and cover top. Select a part for individual STEP/STL export, or export all three as one STEP. The separated preview does not move exported coordinates.
+Each directory in `models/` contains a Cargo crate and `catalog.toml`. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
 
-`src/bilresa.rs` captures the supplied measurements and formulas, then constructs the parts from CAD primitives, booleans and fillets. Reference STL files are used for comparison only, never as runtime geometry. Only counts are exposed; the other dimensions are held at the supplied values.
+See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
-```sh
-npm run test:bilresa
-# Browser: http://127.0.0.1:5173/tests/bilresa-browser.html
-.venv/bin/pip install scipy rtree
-.venv/bin/python tests/validate_bilresa.py
-```
+BILRESA revision 1 generates three parts and supports independent counts of 0–8. Physical fit and the 0.3 mm adhesive allowance are not yet verified. Shared links record the model ID, schema version, model revision and parameter overrides.
 
-The supplied [Onshape document](https://cad.onshape.com/documents/a8d7f806b021fde567015702/w/f3c1ffb1b3be092d2a2ce889/e/95dc2ef3acda41e95cefbb8f) and local exports informed the reconstruction. See `reference/README.md` for provenance and intentional adaptations. Physical fit is not yet tested; this is a close reconstruction, not a verified exact conversion of the complete feature history.
+## Cleanup and references
+
+The obsolete root demo pages, `web/` UI/worker, central handwritten `catalog.ts`, old build scripts and old browser harnesses have been removed. The box remains only as a regression fixture under `src/tests/fixtures/box`, excluded from the public model catalogue and production assets.
+
+- `docs/ARCHITECTURE.md`: boundaries, schema and platform direction.
+- `docs/VALIDATION.md`: executed checks and limitations.
+- `docs/SPIKE.md`: historical investigation notes.
+- `models/bilresa/reference/README.md`: design provenance.
+- `npm run dev:tests`: serves `/src/tests/product-browser.html` on port 5175.
+
+The deployment workflow remains manual. The existing stoorps.com repository, DNS and Vercel deployment have not been changed.

@@ -1,0 +1,12 @@
+[package]
+name = "model-engine"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+cadrum.workspace = true
+wasm-bindgen.workspace = true
+serde_json.workspace = true

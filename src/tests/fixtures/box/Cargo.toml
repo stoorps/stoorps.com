@@ -1,0 +1,14 @@
+[package]
+name = "fixture-box"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[lib]
+path = "model.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+cadrum.workspace = true
+model-engine.workspace = true
+wasm-bindgen.workspace = true
