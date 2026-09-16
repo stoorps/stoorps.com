@@ -1,11 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Configurator } from "../configurator/Configurator";
 import { models } from "../../generated/catalog";
-const Configurator = lazy(() =>
-  import("../configurator/Configurator").then((module) => ({
-    default: module.Configurator,
-  })),
-);
 export const Route = createFileRoute("/designs/$modelId")({
   loader: ({ params }) => {
     const model = models.find((model) => model.id === params.modelId);
@@ -20,20 +15,8 @@ export const Route = createFileRoute("/designs/$modelId")({
   }),
   component: ModelPage,
 });
-function PreviewPlaceholder() {
-  return (
-    <div className="preview-placeholder">
-      <p role="status">Loading the configurator…</p>
-      <noscript>
-        Enable JavaScript to configure this model and download its parts.
-      </noscript>
-    </div>
-  );
-}
 function ModelPage() {
   const model = Route.useLoaderData();
-  const [client, setClient] = useState(false);
-  useEffect(() => setClient(true), []);
   return (
     <main id="main" className="model-page">
       <div className="model-title">
@@ -54,13 +37,7 @@ function ModelPage() {
         </div>
         <div id="model-downloads" />
       </div>
-      <Suspense fallback={<PreviewPlaceholder />}>
-        {client ? (
-          <Configurator key={model.id} model={model} />
-        ) : (
-          <PreviewPlaceholder />
-        )}
-      </Suspense>
+      <Configurator key={model.id} model={model} />
 
     </main>
   );

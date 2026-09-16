@@ -1,0 +1,114 @@
+:root {
+  --motion-fast: 150ms;
+  --motion-panel: 240ms;
+  --motion-scene: 400ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes content-enter {
+  from { opacity: 0; translate: 0 10px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@keyframes page-leave {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes popover-enter {
+  from { opacity: 0; translate: 0 -5px; }
+}
+[data-motion="pending"] { opacity: 0; }
+[data-motion="visible"] {
+  animation: content-enter 420ms var(--motion-ease) var(--reveal-delay, 0ms) backwards;
+}
+::view-transition-old(root) { animation: page-leave 180ms ease both; }
+::view-transition-new(root) { animation: page-enter 280ms var(--motion-ease) both; }
+::view-transition-group(*) { animation-duration: var(--motion-scene); animation-timing-function: var(--motion-ease); }
+::view-transition-old(*), ::view-transition-new(*) { mix-blend-mode: normal; }
+/* Shared artwork smoothly changes its frame while the two renderings crossfade. */
+::view-transition-group(model-bilresa) { overflow: clip; border-radius: 16px; }
+
+button, .home-socials a, .home-about-link, .about-back, .about-links a {
+  transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+    scale var(--motion-fast) var(--motion-ease);
+}
+button:enabled:active, .home-socials a:active { scale: .96; }
+button:focus-visible, a:focus-visible { outline-offset: 4px; }
+.home-socials a:hover { scale: 1.06; }
+.featured-model .model-artwork { transition: transform 400ms var(--motion-ease); }
+.text-action > span, .project-card h3 > span, .home-about-link > span, .about-back > span {
+  display: inline-block; transition: transform 220ms var(--motion-ease);
+}
+@media (hover: hover) {
+  .featured-model:hover .model-artwork, .featured-model:focus-visible .model-artwork { transform: scale(1.025); }
+  .featured-model:hover .text-action > span, .project-card:hover h3 > span { transform: translate(3px, -3px); }
+  .home-about-link:hover > span { transform: translateX(4px); }
+  .about-back:hover > span { transform: translateX(-4px); }
+  .about-links a:hover { color: var(--accent); }
+  .icon-button:enabled:hover { scale: 1.06; }
+}
+.model-identity { animation: content-enter 300ms var(--motion-ease) backwards; }
+.viewer-toolbar { animation: content-enter 300ms var(--motion-ease) 60ms backwards; }
+.controls-stack > section { animation: content-enter 340ms var(--motion-ease) 120ms backwards; }
+.controls-stack > section:nth-child(2) { animation-delay: 170ms; }
+.controls-stack > section:nth-child(3) { animation-delay: 220ms; }
+.parameter-expander { overflow: clip; }
+.parameter-expander summary { transition: color var(--motion-fast), background-color var(--motion-fast); }
+.parameter-expander summary:hover { color: #173d35; background: #dce3d433; }
+.viewer-loading-art {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  top: calc(-1 * var(--canvas-extension, 0px));
+  background: #173d35; opacity: 1;
+  transition: opacity 280ms ease;
+}
+.viewer-loading-art .model-artwork { width: 100%; height: 100%; object-fit: contain; }
+.viewer-loading-art.is-ready { opacity: 0; }
+[popover]:popover-open { animation: popover-enter 180ms var(--motion-ease); }
+/* Discrete display transitions retain the top layer during the closing fade. */
+@supports (transition-behavior: allow-discrete) {
+  [popover] {
+    opacity: 0; translate: 0 -5px;
+    transition: opacity 150ms, translate 150ms, display 150ms allow-discrete, overlay 150ms allow-discrete;
+  }
+  [popover]:popover-open { opacity: 1; translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-motion="pending"] { opacity: 1; }
+  [data-motion], .model-identity, .viewer-toolbar, .controls-stack > section, [popover]:popover-open {
+    animation: none !important;
+  }
+  button, a, .featured-model .model-artwork, .text-action > span, .project-card h3 > span,
+  .home-about-link > span, .about-back > span, .viewer-loading-art, [popover], .parameter-expander summary {
+    transition: none !important;
+  }
+  button:enabled:active, .home-socials a:hover, .icon-button:enabled:hover { scale: 1; }
+  .featured-model:hover .model-artwork, .featured-model:focus-visible .model-artwork,
+  .featured-model:hover .text-action > span, .project-card:hover h3 > span,
+  .home-about-link:hover > span, .about-back:hover > span { transform: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Keep enlarged artwork inside its frame and below the fixed captions. */
+.model-card-art { overflow: hidden; isolation: isolate; }
+.model-card-art .model-artwork { position: relative; z-index: 0; }
+.model-card-art .art-caption { z-index: 1; pointer-events: none; }
+
+/* The live viewer's loading artwork must fill its canvas, not the card's 380px cap. */
+.viewer-loading-art .model-artwork { max-height: none; object-position: center; }
+::view-transition-old(model-bilresa), ::view-transition-new(model-bilresa) {
+  width: 100%; height: 100%; object-fit: contain; object-position: center;
+}
+@keyframes artwork-depart {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.08); }
+}
+@keyframes artwork-arrive {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+::view-transition-old(model-bilresa) { animation: artwork-depart 360ms var(--motion-ease) both; }
+::view-transition-new(model-bilresa) { animation: artwork-arrive 320ms ease 80ms both; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(model-bilresa), ::view-transition-new(model-bilresa) { animation: none !important; }
+}

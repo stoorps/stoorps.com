@@ -33,7 +33,7 @@ function Home() {
           params={{ modelId: "bilresa" }}
           className="featured-model"
         >
-          <div className="model-card-art">
+          <div className="model-card-art" style={{ viewTransitionName: `model-${featured.id}` }}>
             <span className="art-caption">BILRESA / Three-part assembly</span>
             <ModelArtwork model={featured} />
             <span className="art-caption bottom">Made to fit your setup</span>

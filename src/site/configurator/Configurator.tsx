@@ -1,9 +1,11 @@
+import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ModelDefinition, Parameters } from "../models/types";
 import { defaults, validateParameters } from "../models/types";
 import { configurationUrl, parametersFromHash } from "./share";
 import { GeometryEngine } from "./engine";
+import { ParameterGroup } from "./ParameterGroup";
 import { ParameterControl } from "./ParameterControl";
 import { Viewer } from "./Viewer";
 import type { BuildResult } from "./protocol";
@@ -18,6 +20,7 @@ function download(bytes: Uint8Array, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 export function Configurator({ model }: { model: ModelDefinition }) {
+  const router = useRouter();
   const [params, setParams] = useState<Parameters | null>(null),
     [linkError, setLinkError] = useState("");
   const [result, setResult] = useState<BuildResult | null>(null),
@@ -192,7 +195,16 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         setBuiltKey(key);
         setMessage("Your parts are ready.");
         const url = configurationUrl(model, params, window.location.href);
-        window.history.replaceState(window.history.state, "", url);
+        // Saving a setup is an in-page URL update, not another page entrance.
+        if (url !== window.location.href) {
+          await router.navigate({
+            hash: new URL(url).hash.slice(1),
+            replace: true,
+            resetScroll: false,
+            hashScrollIntoView: false,
+            viewTransition: false,
+          });
+        }
       } catch (e) {
         if (!cancelled) {
           setError((e as Error).message);
@@ -376,13 +388,12 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         <fieldset disabled={exporting || !!linkError || !params}>
           <legend className="sr-only">Switch layout</legend>
           {[...new Set(model.parameters.map(p => p.group || "Parameters"))].map(group => (
-            <details className="parameter-group parameter-expander" key={group} open={group.toLowerCase() === "layout"}>
-              <summary>{group}</summary>
+            <ParameterGroup key={group} name={group}>
               {model.parameters.filter(p => (p.group || "Parameters") === group).map(p => (
                 <ParameterControl key={p.key} definition={p} value={displayed[p.key]}
                   onChange={value => { setParams({ ...displayed, [p.key]: value }); setCopyStatus(""); }} />
               ))}
-            </details>
+            </ParameterGroup>
           ))}
         </fieldset>
         <span className="sr-only" role="status">

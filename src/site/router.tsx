@@ -5,6 +5,7 @@ export function getRouter() {
     routeTree,
     basepath: import.meta.env.BASE_URL,
     scrollRestoration: true,
+    defaultViewTransition: true,
     defaultPreload: "intent",
   });
 }

@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ModelDefinition } from "../models/types";
 import { outlineStyle } from "./outline-style.mjs";
+import { ModelArtwork } from "../components/ModelArtwork";
 import { PartsPanel } from "./PartsPanel";
 import type { Measurement, PartMesh } from "./protocol";
 type Mode = "solid" | "outline";
@@ -54,6 +55,7 @@ export function Viewer({
     >(null),
     [transparency, setTransparency] = useState(outlineStyle.transparency),
     [angle, setAngle] = useState<Angle | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const partsButton = useRef<HTMLButtonElement>(null);
   const [partsOpen, setPartsOpen] = useState(false);
   const [partsPosition, setPartsPosition] = useState({ top: 0, left: 0 });
@@ -497,6 +499,7 @@ export function Viewer({
           initialized = true;
         }
         fadeStart = performance.now();
+        setPreviewReady(true);
       },
       display,
       reset() {
@@ -712,6 +715,7 @@ export function Viewer({
   return (
     <section
       className={`viewer viewer-${mode}`}
+      style={{ viewTransitionName: `model-${model.id}` }}
       aria-label="Interactive 3D preview"
     >
       <div className="viewer-toolbar">
@@ -802,6 +806,7 @@ export function Viewer({
         <PartsPanel model={model} visible={visible} included={included} setVisible={setVisible} setIncluded={setIncluded} disabled={exporting} />
       </div>
       <div className="viewer-stage">
+        <div className={`viewer-loading-art${previewReady ? " is-ready" : ""}`} aria-hidden="true"><ModelArtwork model={model} /></div>
         <div
           ref={host}
           className="viewer-canvas"

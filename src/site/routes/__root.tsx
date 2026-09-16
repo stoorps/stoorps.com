@@ -6,7 +6,9 @@ import {
   Scripts,
   useLocation,
 } from "@tanstack/react-router";
+import { PageMotion } from "../components/PageMotion";
 import { site } from "../site";
+import motionStylesheet from "../motion.css?url";
 import stylesheet from "../styles.css?url";
 export const Route = createRootRoute({
   head: () => ({
@@ -16,7 +18,7 @@ export const Route = createRootRoute({
       { title: "stoorps — Things I make" },
       { name: "description", content: site.description },
     ],
-    links: [{ rel: "stylesheet", href: stylesheet }],
+    links: [{ rel: "stylesheet", href: stylesheet }, { rel: "stylesheet", href: motionStylesheet }],
   }),
   component: Root,
   notFoundComponent: () => (
@@ -79,6 +81,7 @@ function Root() {
           </nav>
         </header>}
         <Outlet />
+        <PageMotion />
         <footer className={`site-footer${minimalNavigation ? " minimal-footer" : ""}`}>
           {!minimalNavigation && <span>
             stoorps <span className="muted">/ Things I make</span>
