@@ -87,6 +87,7 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
           return {
             positions,
             normals: p.normals(),
+            surfaceNormals: p.surface_normals?.(),
             indices: p.indices(),
             volume: p.volume(),
             bounds,
@@ -109,6 +110,7 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
             p.positions.buffer,
             p.normals.buffer,
             p.indices.buffer,
+            ...(p.surfaceNormals ? [p.surfaceNormals.buffer] : []),
           ]) as ArrayBuffer[],
         );
       } catch (error) {

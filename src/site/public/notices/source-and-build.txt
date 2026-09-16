@@ -1,6 +1,6 @@
 GEOMETRY SOURCE AND REBUILD INFORMATION
 
-The compiled geometry uses cadrum 0.8.20 (MIT) and Open CASCADE Technology
+The cadrum backend uses cadrum 0.8.20 (MIT) and Open CASCADE Technology
 8.0.1 (LGPL 2.1 with the Open CASCADE additional exception).
 
 Application geometry sources and pinned build instructions are included in
@@ -23,3 +23,11 @@ to the LGPL-covered library is imposed by this site.
 
 This file records source provenance and rebuild information; it is not a
 substitute for the accompanying licence texts.
+
+The manifold backend uses manifold-rust 0.13.1 (Apache 2.0):
+https://crates.io/crates/manifold-rust/0.13.1
+Each model selects its backend in catalog.toml. Both are Rust crates compiled
+to WASM. The manifold build uses the plain Rust image configured in
+src/tools/build-wasm.mjs and does not link Open CASCADE. Cargo.lock pins
+its dependencies. To build only the lampshade:
+node src/tools/build-wasm.mjs --model=model-lampshade

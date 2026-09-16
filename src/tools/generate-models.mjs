@@ -16,14 +16,6 @@ export async function generateModels() {
       2,
     )};\nexport function getModel(id: string): ModelDefinition { const model=models.find(m=>m.id===id); if(!model) throw new Error('Unknown model: '+id); return model; }\n`,
   );
-  for (const e of entries.filter((e) => e.catalog.runtime === "mesh")) {
-    const dir = `src/generated/models/${e.catalog.id}`;
-    await mkdir(dir, { recursive: true });
-    await writeChanged(
-      `${dir}/model.js`,
-      `import { createModule } from '../../../../models/${e.catalog.id}/model.mjs';\nimport wasmUrl from 'manifold-3d/manifold.wasm?url';\nconst module = createModule(${JSON.stringify(e.catalog)});\nexport const Model = module.Model;\nexport const catalog_json = module.catalog_json;\nexport default () => module.initialize({locateFile: () => wasmUrl});\n`,
-    );
-  }
   const loaders = entries
     .map(
       (e) =>

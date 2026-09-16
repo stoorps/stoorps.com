@@ -52,7 +52,7 @@ The preview serves `dist/client` on port 4174. For a repository Pages site use `
 
 ## Models
 
-Each CAD model directory in `models/` contains a Cargo crate and `catalog.toml`; mesh models use `model.mjs` and a catalogue with `runtime = "mesh"`. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
+Each model directory in `models/` contains a Rust Cargo crate and `catalog.toml`. The catalogue selects `backend = "cadrum"` for CAD solids or `backend = "manifold"` for triangle-mesh solids. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
 
 See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
@@ -74,6 +74,12 @@ Catalogue artwork is generated automatically during `npm run build` from each mo
 
 ## Curve lampshade
 
-`/designs/lampshade` provides profile presets and draggable diameters, a rippled shell or diamond lattice, mounting offset/orientation, a coarse-thread adapter and fit-test collar. Print setup provides guidance without saving profiles. This model uses a JavaScript/Manifold mesh runtime and STL exports; the existing Rust/CAD models retain STEP. See [the model documentation](models/lampshade/README.md) for dimensions, validation and physical-test limitations.
+`/designs/lampshade` provides profile presets and draggable diameters, a rippled shell or diamond lattice, mounting offset/orientation, a coarse-thread adapter and fit-test collar. Print setup provides guidance without saving profiles. This model uses the pure Rust `manifold-rust` kernel compiled to WASM and exports STL; cadrum models retain STEP. Both backends share the geometry worker and viewer interface. See [the model documentation](models/lampshade/README.md) for dimensions, validation and physical-test limitations.
 
 Set `default_view = "solid"` or `default_view = "outline"` in a model catalogue to choose its initial preview style. If omitted, it defaults to Outline. This is presentation metadata and does not change model revisions or geometry.
+
+### Compact configuration links
+
+New links use Base64url-encoded binary format 2: a version byte, model `share_id`, model revision, then pairs of parameter `share_id` and integer ticks from its minimum. Integers use unsigned base-128 varints. Only changed parameters are included, sorted by sharing ID. Default configurations omit the hash and follow the current catalogue defaults. Existing JSON format-1 links remain readable, including supported revision migrations.
+
+Model sharing IDs must be globally unique; parameter sharing IDs must be unique within a model. These are permanent identities: do not renumber or reuse them when reordering/removing catalogue entries. Changing defaults, minimums, steps or parameter meaning requires a model revision bump. Unsupported compact revisions are rejected rather than silently interpreted with a newer catalogue.

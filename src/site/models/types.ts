@@ -1,5 +1,6 @@
 export type Parameters = Record<string, number>;
 export type ParameterDefinition = {
+  share_id: number;
   options?: string[];
   key: string;
   unit?: string;
@@ -18,8 +19,9 @@ export type CameraPreset = {
   pan: readonly [number, number];
 };
 export type ModelDefinition = {
+  share_id: number;
   default_view?: "solid" | "outline";
-  runtime?: "mesh";
+  backend: "cadrum" | "manifold";
   formats?: ("stl" | "step")[];
   camera?: { desktop?: CameraPreset; mobile?: CameraPreset };
   id: string;
@@ -65,6 +67,7 @@ export function geometryContract(model: ModelDefinition) {
   return {
     id: model.id,
     revision: model.revision,
+    backend: model.backend,
     parameters: model.parameters.map(
       ({ key, default: defaultValue, min, max, step }) => ({
         key,

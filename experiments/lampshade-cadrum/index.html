@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>Lampshade geometry comparison</title>
+  <style>
+    body {
+      margin: 0;
+      background: #183f37;
+      color: #eef1df;
+      font: 16px system-ui;
+    }
+    header {
+      padding: 20px 28px;
+    }
+    h1 {
+      font-size: 24px;
+      margin: 0 0 8px;
+    }
+    p {
+      max-width: 1100px;
+      line-height: 1.5;
+      margin: 8px 0;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+    section {
+      background: #15372f;
+    }
+    h2,
+    output {
+      display: block;
+      margin: 15px 24px;
+    }
+    h2 {
+      font-size: 18px;
+    }
+    output {
+      font-size: 14px;
+      min-height: 42px;
+    }
+    .view {
+      height: 68vh;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    button,
+    a {
+      color: inherit;
+    }
+    button {
+      border: 1px solid #aac4b4;
+      background: #285347;
+      padding: 8px 16px;
+      border-radius: 6px;
+      margin-right: 10px;
+    }
+    a {
+      margin-right: 12px;
+    }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "/node_modules/three/build/three.module.js" } }
+  </script>
+  <header>
+    <h1>Lampshade: mesh versus CAD</h1>
+    <p>
+      Same 190 / 170 / 120 mm profile, 180 mm height, 1 mm ripple, zero twist,
+      density 80. Body-only experiment: mounting hardware excluded from both.
+      CAD uses planar radial diamond cutters; the current version wraps its
+      openings around the surface.
+    </p>
+    <p>
+      Drag or zoom either view to move both. Timings exclude engine startup and
+      compilation; CAD runs native Rust, while the mesh baseline runs Node/WASM.
+      These are not browser speed comparisons.
+    </p>
+    <button id="reset">Reset cameras</button
+    ><button id="wire">Show triangles</button
+    ><a href="/artifacts/lampshade-comparison/cadrum.step">CAD STEP</a
+    ><a href="/artifacts/lampshade-comparison/cadrum.stl">CAD STL</a>
+  </header>
+  <main>
+    <section>
+      <h2>Current mesh pipeline · Manifold</h2>
+      <output id="mesh-stat">Loading…</output>
+      <div class="view" id="mesh"></div>
+    </section>
+    <section>
+      <h2>BILRESA pipeline · cadrum / OpenCascade</h2>
+      <output id="cad-stat">Loading…</output>
+      <div class="view" id="cad"></div>
+    </section>
+  </main>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "/node_modules/three/examples/jsm/controls/OrbitControls.js";
+    const views = [];
+    let syncing = false;
+    function make(id) {
+      const host = document.getElementById(id),
+        scene = new THREE.Scene();
+      scene.background = new THREE.Color("#183f37");
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x657f70, 3));
+      const light = new THREE.DirectionalLight(0xffffff, 3);
+      light.position.set(30, -50, 100);
+      scene.add(light);
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2000);
+      camera.up.set(0, 0, 1);
+      camera.position.set(260, -350, 260);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      host.append(renderer.domElement);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 0, 90);
+      controls.update();
+      const v = { host, scene, camera, renderer, controls };
+      views.push(v);
+      new ResizeObserver(() => {
+        renderer.setSize(host.clientWidth, host.clientHeight);
+        camera.aspect = host.clientWidth / host.clientHeight;
+        camera.updateProjectionMatrix();
+      }).observe(host);
+      controls.addEventListener("change", () => {
+        if (syncing) return;
+        syncing = true;
+        for (const other of views) {
+          if (other === v) continue;
+          other.camera.position.copy(camera.position);
+          other.camera.quaternion.copy(camera.quaternion);
+          other.controls.target.copy(controls.target);
+          other.controls.update();
+        }
+        syncing = false;
+      });
+      return v;
+    }
+    async function load(id, file) {
+      const view = make(id);
+      try {
+        const response = await fetch(
+          "/artifacts/lampshade-comparison/" + file + ".json",
+        );
+        if (!response.ok) throw Error("CAD generation has not completed");
+        const data = await response.json();
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(data.positions, 3),
+        );
+        geometry.setAttribute(
+          "normal",
+          new THREE.Float32BufferAttribute(data.normals, 3),
+        );
+        if (data.indices) geometry.setIndex(data.indices);
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xe5d5ae,
+          roughness: 0.65,
+          metalness: 0.04,
+        });
+        view.mesh = new THREE.Mesh(geometry, material);
+        view.scene.add(view.mesh);
+        const n = (data.indices?.length ?? data.positions.length / 3) / 3;
+        document.getElementById(id + "-stat").textContent =
+          `Geometry ${data.generationSeconds.toFixed(2)}s${data.meshingSeconds !== undefined ? " + tessellation " + data.meshingSeconds.toFixed(2) + "s" : ""} · ${n.toLocaleString()} triangles · ${Math.round(data.volume).toLocaleString()} mm³ · ${data.rows}/${data.totalRows} rows${data.cadFaces ? " · " + data.cadFaces + " CAD faces" : ""}`;
+      } catch (e) {
+        document.getElementById(id + "-stat").textContent = e.message;
+      }
+    }
+    await Promise.all([load("mesh", "manifold"), load("cad", "cadrum")]);
+    function render() {
+      requestAnimationFrame(render);
+      for (const v of views) v.renderer.render(v.scene, v.camera);
+    }
+    render();
+    document.getElementById("wire").onclick = (e) => {
+      for (const v of views)
+        if (v.mesh) v.mesh.material.wireframe = !v.mesh.material.wireframe;
+      e.target.textContent = views[0].mesh.material.wireframe
+        ? "Hide triangles"
+        : "Show triangles";
+    };
+    document.getElementById("reset").onclick = () => {
+      for (const v of views) {
+        v.camera.position.set(260, -350, 260);
+        v.controls.target.set(0, 0, 90);
+        v.controls.update();
+      }
+    };
+  </script>
+</html>

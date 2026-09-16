@@ -8,6 +8,7 @@ import { GeometryEngine } from "./engine";
 import { ParameterGroup } from "./ParameterGroup";
 import { ParameterControl } from "./ParameterControl";
 import { LampshadeProfile, LampshadeGuidance } from "./LampshadeControls";
+import { CellEditor } from "./CellEditor";
 import { Viewer } from "./Viewer";
 import type { BuildResult } from "./protocol";
 function download(bytes: Uint8Array, name: string) {
@@ -35,13 +36,18 @@ export function Configurator({ model }: { model: ModelDefinition }) {
   const [copyStatus, setCopyStatus] = useState(""),
     [fallbackLink, setFallbackLink] = useState(""),
     [restart, setRestart] = useState(0);
-  const [openCard, setOpenCard] = useState<"about" | "print" | "setup" | null>("setup");
+  const [openCard, setOpenCard] = useState<"about" | "print" | "setup" | null>(
+    "setup",
+  );
   const cardStack = useRef<HTMLElement | null>(null);
   const cardMotion = useRef(false);
   const queuedCard = useRef<"about" | "print" | "setup" | null>(null);
   const currentCard = useRef(openCard);
   async function toggleCard(card: "about" | "print" | "setup") {
-    if (cardMotion.current) { queuedCard.current = card; return; }
+    if (cardMotion.current) {
+      queuedCard.current = card;
+      return;
+    }
     const next = currentCard.current === card ? null : card;
     const stack = cardStack.current;
     if (!stack || matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -51,24 +57,52 @@ export function Configurator({ model }: { model: ModelDefinition }) {
     }
     cardMotion.current = true;
     const cards = Array.from(stack.children) as HTMLElement[];
-    const contents = () => Array.from(stack.querySelectorAll<HTMLElement>(".info-card-content, .setup-scroll, .setup-actions, .setup-header-content")).filter(node => node.getClientRects().length);
+    const contents = () =>
+      Array.from(
+        stack.querySelectorAll<HTMLElement>(
+          ".info-card-content, .setup-scroll, .setup-actions, .setup-header-content",
+        ),
+      ).filter((node) => node.getClientRects().length);
     const play = async (animations: Animation[]) => {
-      await Promise.all(animations.map(animation => animation.finished.catch(() => {})));
-      animations.forEach(animation => animation.cancel());
+      await Promise.all(
+        animations.map((animation) => animation.finished.catch(() => {})),
+      );
+      animations.forEach((animation) => animation.cancel());
     };
-    const heights = cards.map(node => node.getBoundingClientRect().height);
+    const heights = cards.map((node) => node.getBoundingClientRect().height);
     stack.classList.add("cards-transitioning");
-    await play(contents().map(node => node.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: "forwards" })));
+    await play(
+      contents().map((node) =>
+        node.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: 100,
+          fill: "forwards",
+        }),
+      ),
+    );
     stack.classList.add("cards-content-hidden");
     currentCard.current = next;
     flushSync(() => setOpenCard(next));
-    const targets = cards.map(node => node.getBoundingClientRect().height);
-    await play(cards.map((node, index) => node.animate([
-      { height: `${heights[index]}px`, flex: "0 0 auto" },
-      { height: `${targets[index]}px`, flex: "0 0 auto" },
-    ], { duration: 220, easing: "cubic-bezier(.22,1,.36,1)", fill: "both" })));
+    const targets = cards.map((node) => node.getBoundingClientRect().height);
+    await play(
+      cards.map((node, index) =>
+        node.animate(
+          [
+            { height: `${heights[index]}px`, flex: "0 0 auto" },
+            { height: `${targets[index]}px`, flex: "0 0 auto" },
+          ],
+          { duration: 220, easing: "cubic-bezier(.22,1,.36,1)", fill: "both" },
+        ),
+      ),
+    );
     stack.classList.remove("cards-content-hidden");
-    await play(contents().map(node => node.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, fill: "both" })));
+    await play(
+      contents().map((node) =>
+        node.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: 140,
+          fill: "both",
+        }),
+      ),
+    );
     stack.classList.remove("cards-transitioning");
     cardMotion.current = false;
     const queued = queuedCard.current;
@@ -93,12 +127,25 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         const viewRect = viewer.getBoundingClientRect();
         const afterViewer = stack.getBoundingClientRect().top - viewRect.bottom;
         // Leave the whole Customise header visible as an invitation to scroll.
-        const available = window.innerHeight - (viewRect.top + window.scrollY) - afterViewer - heading.getBoundingClientRect().height - 2;
-        viewer.style.setProperty("--mobile-viewer-height", `${Math.max(220, available)}px`);
+        const available =
+          window.innerHeight -
+          (viewRect.top + window.scrollY) -
+          afterViewer -
+          heading.getBoundingClientRect().height -
+          2;
+        viewer.style.setProperty(
+          "--mobile-viewer-height",
+          `${Math.max(220, available)}px`,
+        );
       });
     };
     const observer = new ResizeObserver(measure);
-    [heading, workspace.querySelector(".download-actions"), document.querySelector(".model-title"), document.querySelector(".site-header")].forEach(element => {
+    [
+      heading,
+      workspace.querySelector(".download-actions"),
+      document.querySelector(".model-title"),
+      document.querySelector(".site-header"),
+    ].forEach((element) => {
       if (element) observer.observe(element);
     });
     window.addEventListener("resize", measure);
@@ -116,19 +163,38 @@ export function Configurator({ model }: { model: ModelDefinition }) {
   const [helpOpen, setHelpOpen] = useState(false);
   function positionHelp() {
     const rect = helpButton.current?.getBoundingClientRect();
-    if (rect) setHelpPosition({ top: Math.max(16, Math.min(rect.bottom + 8, window.innerHeight - (helpPanel.current?.getBoundingClientRect().height || 260) - 16)), left: Math.max(16, Math.min(rect.right - 330, window.innerWidth - 346)) });
+    if (rect)
+      setHelpPosition({
+        top: Math.max(
+          16,
+          Math.min(
+            rect.bottom + 8,
+            window.innerHeight -
+              (helpPanel.current?.getBoundingClientRect().height || 260) -
+              16,
+          ),
+        ),
+        left: Math.max(16, Math.min(rect.right - 330, window.innerWidth - 346)),
+      });
   }
   useEffect(() => {
     const media = matchMedia("(min-width: 761px)");
-    const update = () => setDownloadHost(media.matches ? document.getElementById("model-downloads") : null);
-    update(); media.addEventListener("change", update);
+    const update = () =>
+      setDownloadHost(
+        media.matches ? document.getElementById("model-downloads") : null,
+      );
+    update();
+    media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
   useEffect(() => {
     if (!helpOpen) return;
     window.addEventListener("resize", positionHelp);
     window.addEventListener("scroll", positionHelp, true);
-    return () => { window.removeEventListener("resize", positionHelp); window.removeEventListener("scroll", positionHelp, true); };
+    return () => {
+      window.removeEventListener("resize", positionHelp);
+      window.removeEventListener("scroll", positionHelp, true);
+    };
   }, [helpOpen]);
   useEffect(() => {
     if (copyStatus !== "Link copied") return;
@@ -195,17 +261,6 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         setResult(next);
         setBuiltKey(key);
         setMessage("Your parts are ready.");
-        const url = configurationUrl(model, params, window.location.href);
-        // Saving a setup is an in-page URL update, not another page entrance.
-        if (url !== window.location.href) {
-          await router.navigate({
-            hash: new URL(url).hash.slice(1),
-            replace: true,
-            resetScroll: false,
-            hashScrollIntoView: false,
-            viewTransition: false,
-          });
-        }
       } catch (e) {
         if (!cancelled) {
           setError((e as Error).message);
@@ -218,6 +273,20 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       clearTimeout(timer);
     };
   }, [key, validation, linkError, restart, model]);
+  // A configuration is shareable even while its geometry is building or invalid.
+  useEffect(() => {
+    if (!params || validation || linkError) return;
+    const url = configurationUrl(model, params, window.location.href);
+    if (url !== window.location.href) {
+      void router.navigate({
+        hash: new URL(url).hash.slice(1),
+        replace: true,
+        resetScroll: false,
+        hashScrollIntoView: false,
+        viewTransition: false,
+      });
+    }
+  }, [key, validation, linkError, model, router]);
   function reset() {
     setLinkError("");
     setError("");
@@ -226,7 +295,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
     setFallbackLink("");
   }
   async function copyLink() {
-    if (!ready || !params) return;
+    if (!params || validation || linkError) return;
     const url = configurationUrl(model, params, window.location.href);
     try {
       await navigator.clipboard.writeText(url);
@@ -294,135 +363,321 @@ export function Configurator({ model }: { model: ModelDefinition }) {
   const selectedParts = included.flatMap((v, i) => (v ? [i] : []));
   const displayed = params || defaults(model);
   const downloadActions = (
-          <div className="download-actions">
-          <div className="export-buttons">
-            <span className="download-version" aria-label={`Version ${model.revision}`}>V{model.revision}</span>
-            <button disabled={!ready || exporting || !selectedParts.length}
-              aria-label={`Download STLs (${selectedParts.length})`}
-              onClick={() => exportFiles(selectedParts.length > 1 ? "zip" : "stl")}>
-              <span aria-hidden="true">↓</span> STLs ({selectedParts.length})
-            </button>
-            {(!model.formats || model.formats.includes("step")) && <button className="secondary" aria-label="Download STEP"
-              disabled={!ready || exporting || !selectedParts.length} onClick={() => exportFiles("step")}>
-              <span aria-hidden="true">↓</span> STEP
-            </button>}
-            <button ref={helpButton} className="icon-button download-info" aria-label="About downloads" popoverTarget="export-help" onClick={positionHelp}>
-              <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg>
-            </button>
-          </div>
-          <div ref={helpPanel} id="export-help" popover="auto" className="export-help" style={helpPosition} onToggle={event => { setHelpOpen(event.newState === "open"); if (event.newState === "open") positionHelp(); }}>
-            <strong>About downloads</strong>
-            <p>{selectedParts.length ? `${selectedParts.length} parts selected for export.` : "Select at least one part to download."}</p>
-            <p>{model.formats?.length === 1 ? "This design exports STL meshes. " : "STEP keeps assembled positions. "}A single STL downloads directly; multiple STLs download as a ZIP. Dimensions are in millimetres.</p>
-            <button className="quiet-button" popoverTarget="export-help" popoverTargetAction="hide">Close</button>
-          </div>
-        <p className="sr-only" role="status">
-          {validation ||
-            (linkError ? "Configuration needs attention." : exporting ? "Preparing download…" : message)}
-        </p>
-        {error && (
-          <div className="error-box" role="alert">
-            <p>{error}</p>
-            <button
-              className="quiet-button"
-              onClick={() => {
-                setError("");
-                setBuiltKey("");
-                setRestart((v) => v + 1);
-              }}
-            >
-              Restart preview
-            </button>
-          </div>
+    <div className="download-actions">
+      <div className="export-buttons">
+        <span
+          className="download-version"
+          aria-label={`Version ${model.revision}`}
+        >
+          V{model.revision}
+        </span>
+        <button
+          disabled={!ready || exporting || !selectedParts.length}
+          aria-label={`Download STLs (${selectedParts.length})`}
+          onClick={() => exportFiles(selectedParts.length > 1 ? "zip" : "stl")}
+        >
+          <span aria-hidden="true">↓</span> STLs ({selectedParts.length})
+        </button>
+        {(!model.formats || model.formats.includes("step")) && (
+          <button
+            className="secondary"
+            aria-label="Download STEP"
+            disabled={!ready || exporting || !selectedParts.length}
+            onClick={() => exportFiles("step")}
+          >
+            <span aria-hidden="true">↓</span> STEP
+          </button>
         )}
-          </div>
-
+        <button
+          ref={helpButton}
+          className="icon-button download-info"
+          aria-label="About downloads"
+          popoverTarget="export-help"
+          onClick={positionHelp}
+        >
+          <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 11v6m0-10v1" />
+          </svg>
+        </button>
+      </div>
+      <div
+        ref={helpPanel}
+        id="export-help"
+        popover="auto"
+        className="export-help"
+        style={helpPosition}
+        onToggle={(event) => {
+          setHelpOpen(event.newState === "open");
+          if (event.newState === "open") positionHelp();
+        }}
+      >
+        <strong>About downloads</strong>
+        <p>
+          {selectedParts.length
+            ? `${selectedParts.length} parts selected for export.`
+            : "Select at least one part to download."}
+        </p>
+        <p>
+          {model.formats?.length === 1
+            ? "This design exports STL meshes. "
+            : "STEP keeps assembled positions. "}
+          A single STL downloads directly; multiple STLs download as a ZIP.
+          Dimensions are in millimetres.
+        </p>
+        <button
+          className="quiet-button"
+          popoverTarget="export-help"
+          popoverTargetAction="hide"
+        >
+          Close
+        </button>
+      </div>
+      <p className="sr-only" role="status">
+        {validation ||
+          (linkError
+            ? "Configuration needs attention."
+            : exporting
+              ? "Preparing download…"
+              : message)}
+      </p>
+      {error && (
+        <div className="error-box" role="alert">
+          <p>{error}</p>
+          <button
+            className="quiet-button"
+            onClick={() => {
+              setError("");
+              setBuiltKey("");
+              setRestart((v) => v + 1);
+            }}
+          >
+            Restart preview
+          </button>
+        </div>
+      )}
+    </div>
   );
   return (
     <div
       className="configurator"
       aria-busy={!ready && !error && !linkError && !validation}
     >
-      {downloadHost ? createPortal(downloadActions, downloadHost) : downloadActions}
-      <aside ref={cardStack} className="controls-stack" aria-label="Design information and setup">
-        <section className={`controls-panel ${openCard === "setup" ? "is-open" : ""}`}>
-
-        <div className="controls-heading">
-          <div className="setup-row">
-            <h2><button className="setup-toggle" aria-expanded={openCard === "setup"} aria-controls="setup-content" onClick={() => toggleCard("setup")}>Customise<span aria-hidden="true">{openCard === "setup" ? "⌃" : "⌄"}</span></button></h2>
-            <div className="setup-actions" hidden={openCard !== "setup"}>
-              <button
-                className="icon-button"
-                aria-label={copyStatus === "Link copied" ? "Link copied" : "Copy link"}
-                title={copyStatus === "Link copied" ? "Link copied" : "Copy link"}
-                disabled={!ready || exporting}
-                onClick={copyLink}
-              >
-                {copyStatus === "Link copied" ? "✓" : <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/></svg>}
-              </button>
-              <button
-                className="icon-button"
-                title="Reset all parameters"
-                aria-label="Reset all parameters"
-                disabled={
-                  exporting ||
-                  (!!params &&
-                    model.parameters.every((p) => params[p.key] === p.default))
-                }
-                onClick={reset}
-              >
-                ↺
-              </button>
+      {downloadHost
+        ? createPortal(downloadActions, downloadHost)
+        : downloadActions}
+      <aside
+        ref={cardStack}
+        className="controls-stack"
+        aria-label="Design information and setup"
+      >
+        <section
+          className={`controls-panel ${openCard === "setup" ? "is-open" : ""}`}
+        >
+          <div className="controls-heading">
+            <div className="setup-row">
+              <h2>
+                <button
+                  className="setup-toggle"
+                  aria-expanded={openCard === "setup"}
+                  aria-controls="setup-content"
+                  onClick={() => toggleCard("setup")}
+                >
+                  Customise
+                  <span aria-hidden="true">
+                    {openCard === "setup" ? "⌃" : "⌄"}
+                  </span>
+                </button>
+              </h2>
+              <div className="setup-actions" hidden={openCard !== "setup"}>
+                <button
+                  className="icon-button"
+                  aria-label={
+                    copyStatus === "Link copied" ? "Link copied" : "Copy link"
+                  }
+                  title={
+                    copyStatus === "Link copied" ? "Link copied" : "Copy link"
+                  }
+                  disabled={!params || !!validation || !!linkError}
+                  onClick={copyLink}
+                >
+                  {copyStatus === "Link copied" ? (
+                    "✓"
+                  ) : (
+                    <svg
+                      className="tool-icon"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7" />
+                    </svg>
+                  )}
+                </button>
+                <button
+                  className="icon-button"
+                  title="Reset all parameters"
+                  aria-label="Reset all parameters"
+                  disabled={
+                    exporting ||
+                    (!!params &&
+                      model.parameters.every(
+                        (p) => params[p.key] === p.default,
+                      ))
+                  }
+                  onClick={reset}
+                >
+                  ↺
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <div id="setup-content" className="setup-scroll" hidden={openCard !== "setup"}>
-          <p className="setup-hint">{model.configuration_hint || "Adjust the parameters to suit your setup."}</p>
-        {linkError && (
-          <div className="error-box" role="alert">
-            <p>{linkError}</p>
-            <button className="quiet-button" onClick={reset}>
-              Start with the default layout
-            </button>
+          <div
+            id="setup-content"
+            className="setup-scroll"
+            hidden={openCard !== "setup"}
+          >
+            <p className="setup-hint">
+              {model.configuration_hint ||
+                "Adjust the parameters to suit your setup."}
+            </p>
+            {linkError && (
+              <div className="error-box" role="alert">
+                <p>{linkError}</p>
+                <button className="quiet-button" onClick={reset}>
+                  Start with the default layout
+                </button>
+              </div>
+            )}
+            <fieldset disabled={exporting || !!linkError || !params}>
+              <legend className="sr-only">Design settings</legend>
+              {[
+                ...new Set(
+                  model.parameters.map((p) => p.group || "Parameters"),
+                ),
+              ]
+                .filter((group) => group !== "Cell editor")
+                .flatMap((group) =>
+                  model.id === "lampshade" &&
+                  group === "Pattern" &&
+                  displayed.pattern === 1
+                    ? [group, "Cell shape"]
+                    : [group],
+                )
+                .map((group) => (
+                  <ParameterGroup
+                    key={group}
+                    name={group}
+                    defaultOpen={
+                      group === "Layout" ||
+                      (model.id === "lampshade" && group === "Shape")
+                    }
+                  >
+                    {model.id === "lampshade" && group === "Shape" && (
+                      <LampshadeProfile
+                        params={displayed}
+                        onChange={(next) => {
+                          setParams(next);
+                          setCopyStatus("");
+                        }}
+                      />
+                    )}
+                    {group === "Cell shape" && (
+                      <CellEditor
+                        params={displayed}
+                        onChange={(next) => {
+                          setParams(next);
+                          setCopyStatus("");
+                        }}
+                      />
+                    )}
+                    {model.parameters
+                      .filter((p) =>
+                        group === "Cell shape"
+                          ? [
+                              "cell_aspect",
+                              "cell_rotation",
+                              "cell_offset",
+                              ...(displayed.cell_cut_outside
+                                ? ["cell_scale"]
+                                : []),
+                            ].includes(p.key)
+                          : (p.group || "Parameters") === group &&
+                            !(
+                              model.id === "lampshade" &&
+                              [
+                                "height",
+                                "top_diameter",
+                                "middle_diameter",
+                                "bottom_diameter",
+                              ].includes(p.key)
+                            ),
+                      )
+                      .map((p) => (
+                        <ParameterControl
+                          key={p.key}
+                          definition={p}
+                          value={displayed[p.key]}
+                          onChange={(value) => {
+                            setParams({ ...displayed, [p.key]: value });
+                            setCopyStatus("");
+                          }}
+                        />
+                      ))}
+                  </ParameterGroup>
+                ))}
+            </fieldset>
+            {model.id === "lampshade" && (
+              <LampshadeGuidance
+                params={displayed}
+                result={ready ? result : null}
+              />
+            )}
+            <span className="sr-only" role="status">
+              {copyStatus}
+            </span>
+            {copyStatus && <p className="field-note">{copyStatus}</p>}
+            {fallbackLink && (
+              <label className="fallback-link">
+                Configuration link
+                <input
+                  readOnly
+                  value={fallbackLink}
+                  onFocus={(e) => e.target.select()}
+                />
+              </label>
+            )}
           </div>
-        )}
-        <fieldset disabled={exporting || !!linkError || !params}>
-          <legend className="sr-only">Design settings</legend>
-          {model.id === "lampshade" && <LampshadeProfile params={displayed} onChange={setParams} />}
-          {[...new Set(model.parameters.map(p => p.group || "Parameters"))].map(group => (
-            <ParameterGroup key={group} name={group}>
-              {model.parameters.filter(p => (p.group || "Parameters") === group).map(p => (
-                <ParameterControl key={p.key} definition={p} value={displayed[p.key]}
-                  onChange={value => { setParams({ ...displayed, [p.key]: value }); setCopyStatus(""); }} />
-              ))}
-            </ParameterGroup>
-          ))}
-        </fieldset>
-        {model.id === "lampshade" && <LampshadeGuidance params={displayed} result={ready ? result : null} />}
-        <span className="sr-only" role="status">
-          {copyStatus}
-        </span>
-        {copyStatus && <p className="field-note">{copyStatus}</p>}
-        {fallbackLink && (
-          <label className="fallback-link">
-            Configuration link
-            <input
-              readOnly
-              value={fallbackLink}
-              onFocus={(e) => e.target.select()}
-            />
-          </label>
-        )}
-        </div>
         </section>
-        {(["about", "print"] as const).map(card => (
-          <section className={`info-card ${openCard === card ? "is-open" : ""}`} key={card}>
-            <h2><button className="card-toggle" aria-expanded={openCard === card} aria-controls={`${card}-content`} onClick={() => toggleCard(card)}>
-              {card === "about" ? "About the design" : "Before you print"}<span aria-hidden="true">{openCard === card ? "⌃" : "⌄"}</span>
-            </button></h2>
-            <div id={`${card}-content`} className="info-card-content" hidden={openCard !== card}>
-              <p>{card === "about" ? model.overview || model.description : model.print_notes || "Check the dimensions and tolerances for your printer before a full print."}</p>
-              {card === "about" && model.source_url && <a href={model.source_url}>Original design ↗</a>}
+        {(["about", "print"] as const).map((card) => (
+          <section
+            className={`info-card ${openCard === card ? "is-open" : ""}`}
+            key={card}
+          >
+            <h2>
+              <button
+                className="card-toggle"
+                aria-expanded={openCard === card}
+                aria-controls={`${card}-content`}
+                onClick={() => toggleCard(card)}
+              >
+                {card === "about" ? "About the design" : "Before you print"}
+                <span aria-hidden="true">{openCard === card ? "⌃" : "⌄"}</span>
+              </button>
+            </h2>
+            <div
+              id={`${card}-content`}
+              className="info-card-content"
+              hidden={openCard !== card}
+            >
+              <p>
+                {card === "about"
+                  ? model.overview || model.description
+                  : model.print_notes ||
+                    "Check the dimensions and tolerances for your printer before a full print."}
+              </p>
+              {card === "about" && model.source_url && (
+                <a href={model.source_url}>Original design ↗</a>
+              )}
             </div>
           </section>
         ))}

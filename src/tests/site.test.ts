@@ -24,19 +24,75 @@ test("all supported count pairs round-trip, including zero and asymmetric counts
       assert.deepEqual(decodeConfiguration(bilresa, encoded), params);
     }
 });
-test("stores overrides against an explicit model and revision", () => {
-  const value = JSON.parse(
-    Buffer.from(
-      encodeConfiguration(bilresa, defaults(bilresa)),
-      "base64url",
-    ).toString(),
+test("compact IDs retain identity and omit default hashes", () => {
+  const params = {
+    ...defaults(bilresa),
+    num_switches_left: 2,
+    num_switches_right: 0,
+  };
+  assert.equal(encodeConfiguration(bilresa, params).length, 10);
+  assert.equal(
+    configurationUrl(
+      bilresa,
+      defaults(bilresa),
+      "https://example.com/designs/bilresa?ref=x#config=old",
+    ),
+    "https://example.com/designs/bilresa?ref=x",
   );
-  assert.deepEqual(value, {
-    schema: 1,
-    model: "bilresa",
-    modelRevision: 2,
-    overrides: {},
-  });
+  assert.throws(
+    () =>
+      decodeConfiguration(
+        { ...bilresa, share_id: 99 },
+        encodeConfiguration(bilresa, params),
+      ),
+    /different model/,
+  );
+  assert.throws(
+    () =>
+      decodeConfiguration(
+        { ...bilresa, revision: 99 },
+        encodeConfiguration(bilresa, params),
+      ),
+    /revision/,
+  );
+  assert.deepEqual(
+    decodeConfiguration(
+      { ...bilresa, parameters: [...bilresa.parameters].reverse() },
+      encodeConfiguration(bilresa, params),
+    ),
+    params,
+  );
+});
+test("compact decoder rejects damaged and ambiguous byte streams", () => {
+  for (const bytes of [
+    [2],
+    [2, 1],
+    [2, 1, 2, 1],
+    [2, 1, 2, 1, 5],
+    [2, 1, 2, 99, 0],
+    [2, 1, 2, 1, 2, 1, 3],
+    [2, 129, 0, 2],
+    [2, 1, 2, 1, 128],
+    [3, 1, 2],
+    [2, 1, 2, 1, ...Array(9).fill(255)],
+  ])
+    assert.throws(() =>
+      decodeConfiguration(bilresa, Buffer.from(bytes).toString("base64url")),
+    );
+});
+test("every catalogue parameter round-trips its minimum, maximum and an interior step", () => {
+  for (const model of [bilresa, getModel("lampshade")]) {
+    for (const p of model.parameters) {
+      for (const tick of [0, 1, Math.floor((p.max - p.min) / p.step + 1e-8)]) {
+        const value = Number((p.min + tick * p.step).toPrecision(15));
+        const params = { ...defaults(model), [p.key]: value };
+        assert.deepEqual(
+          decodeConfiguration(model, encodeConfiguration(model, params)),
+          params,
+        );
+      }
+    }
+  }
 });
 test("links preserve origin, repository base, pathname and unrelated query", () => {
   const url = new URL(
@@ -202,4 +258,97 @@ test("older lampshade links retain shape and migrate counts to density", () => {
       }),
     ),
   );
+});
+
+test("revision-2 shade links migrate and edited cells round trip", () => {
+  const model = getModel("lampshade");
+  const p = decodeConfiguration(
+    model,
+    encodeRaw({
+      schema: 1,
+      model: "lampshade",
+      modelRevision: 2,
+      overrides: {
+        bottom_diameter: 200,
+        middle_diameter: 256,
+        top_diameter: 100,
+        density: 100,
+      },
+    }),
+  );
+  assert.equal(p.middle_diameter, 256);
+  assert.equal(p.density, 100);
+  assert.equal(p.cell_nodes, 4);
+  const edited = {
+    ...p,
+    cell_nodes: 6,
+    cell_0_x: 0.5,
+    cell_0_hy: 0.2,
+    cell_0_smooth: 1,
+  };
+  assert.deepEqual(
+    decodeConfiguration(model, encodeConfiguration(model, edited)),
+    edited,
+  );
+});
+
+test("revision-3 cell links keep cutout mode and revision-4 cutaways round trip", () => {
+  const model = getModel("lampshade");
+  const p = decodeConfiguration(
+    model,
+    encodeRaw({
+      schema: 1,
+      model: "lampshade",
+      modelRevision: 3,
+      overrides: {
+        cell_nodes: 6,
+        cell_0_smooth: 1,
+        cell_0_hy: 0.28,
+        density: 78,
+      },
+    }),
+  );
+  assert.equal(p.cell_cut_inside, 1);
+  assert.equal(p.cell_cut_outside, 0);
+  assert.equal(p.cell_nodes, 6);
+  const next = {
+    ...p,
+    cell_cut_outside: 1,
+    cell_cut_inside: 0,
+    cell_scale: 1.4,
+  };
+  assert.deepEqual(
+    decodeConfiguration(model, encodeConfiguration(model, next)),
+    next,
+  );
+  assert.throws(
+    () =>
+      decodeConfiguration(
+        model,
+        encodeRaw({
+          schema: 1,
+          model: "lampshade",
+          modelRevision: 3,
+          overrides: { cell_cut_outside: 1 },
+        }),
+      ),
+    /unsupported cutaway/,
+  );
+});
+
+test("delta links retain every setting together, including inactive cell nodes and handles", () => {
+  for (const model of [bilresa, getModel("lampshade")]) {
+    const params = Object.fromEntries(
+      model.parameters.map((p) => [
+        p.key,
+        Number((p.default === p.max ? p.min : p.max).toPrecision(15)),
+      ]),
+    );
+    const url = configurationUrl(
+      model,
+      params,
+      `https://example.com/designs/${model.id}`,
+    );
+    assert.deepEqual(parametersFromHash(model, new URL(url).hash), params);
+  }
 });

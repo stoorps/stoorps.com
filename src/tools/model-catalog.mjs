@@ -6,6 +6,7 @@ export function validateCatalog(value, directory) {
     throw new Error("Catalogue must be a TOML table");
   const allowed = [
     "id",
+    "share_id",
     "revision",
     "title",
     "description",
@@ -18,7 +19,7 @@ export function validateCatalog(value, directory) {
     "overview",
     "print_notes",
     "source_url",
-    "runtime",
+    "backend",
     "formats",
   ];
   if (Object.keys(value).some((k) => !allowed.includes(k)))
@@ -44,8 +45,12 @@ export function validateCatalog(value, directory) {
     !["https:", "http:"].includes(new URL(value.source_url).protocol)
   )
     throw new Error(`${directory}: invalid source URL`);
-  if (value.runtime !== undefined && value.runtime !== "mesh")
-    throw new Error(`${directory}: invalid runtime`);
+  if (!["cadrum", "manifold"].includes(value.backend))
+    throw new Error(`${directory}: invalid or missing backend`);
+  if (value.backend === "manifold" && value.formats?.includes("step"))
+    throw new Error(
+      `${directory}: manifold backend does not support STEP exports`,
+    );
   if (
     value.formats !== undefined &&
     (!Array.isArray(value.formats) ||
@@ -53,7 +58,10 @@ export function validateCatalog(value, directory) {
       value.formats.some((f) => !["stl", "step"].includes(f)))
   )
     throw new Error(`${directory}: invalid formats`);
-  if (value.default_view !== undefined && !["solid", "outline"].includes(value.default_view))
+  if (
+    value.default_view !== undefined &&
+    !["solid", "outline"].includes(value.default_view)
+  )
     throw new Error(`${directory}: invalid default view`);
   if (value.camera !== undefined) {
     const table = value.camera;
@@ -88,6 +96,9 @@ export function validateCatalog(value, directory) {
   }
   if (!Array.isArray(value.parameters) || !value.parameters.length)
     throw new Error(`${directory}: parameters are required`);
+  if (!Number.isSafeInteger(value.share_id) || value.share_id < 1)
+    throw new Error(`${directory}: invalid sharing ID`);
+  const ids = new Set();
   const keys = new Set();
   for (const p of value.parameters) {
     if (
@@ -98,6 +109,15 @@ export function validateCatalog(value, directory) {
       !p.label.trim()
     )
       throw new Error(`${directory}: invalid or duplicate parameter`);
+    if (
+      !Number.isSafeInteger(p.share_id) ||
+      p.share_id < 1 ||
+      ids.has(p.share_id)
+    )
+      throw new Error(
+        `${directory}: invalid or duplicate parameter sharing ID`,
+      );
+    ids.add(p.share_id);
     keys.add(p.key);
     for (const key of ["unit", "group", "help"])
       if (p[key] !== undefined && typeof p[key] !== "string")
@@ -117,6 +137,7 @@ export function validateCatalog(value, directory) {
         (k) =>
           ![
             "key",
+            "share_id",
             "label",
             "default",
             "min",
@@ -133,6 +154,7 @@ export function validateCatalog(value, directory) {
       throw new Error(`${directory}: unknown parameter field`);
     if (
       ![p.default, p.min, p.max, p.step].every(Number.isFinite) ||
+      !Number.isSafeInteger(Math.round((p.max - p.min) / p.step)) ||
       p.step <= 0 ||
       p.min > p.max ||
       p.default < p.min ||
@@ -168,23 +190,28 @@ export async function readModels(root = process.cwd()) {
   const entries = (await readdir(directory, { withFileTypes: true }))
     .filter((e) => e.isDirectory())
     .sort((a, b) => a.name.localeCompare(b.name));
-  return Promise.all(
+  const models = await Promise.all(
     entries.map(async (entry) => {
       const folder = path.join(directory, entry.name);
       const catalog = validateCatalog(
         parse(await readFile(path.join(folder, "catalog.toml"), "utf8")),
         entry.name,
       );
-      if (catalog.runtime === "mesh") {
-        await readFile(path.join(folder, "model.mjs"), "utf8");
-        return { catalog, crate: null, folder };
-      }
       const manifest = parse(
         await readFile(path.join(folder, "Cargo.toml"), "utf8"),
       );
       if (!/^[a-z][a-z0-9-]*$/.test(manifest.package?.name))
         throw new Error(`${entry.name}: invalid crate name`);
+      const kernel = catalog.backend === "cadrum" ? "cadrum" : "manifold-rust";
+      if (!manifest.dependencies?.[kernel])
+        throw new Error(
+          `${entry.name}: ${catalog.backend} backend requires ${kernel}`,
+        );
       return { catalog, crate: manifest.package.name, folder };
     }),
   );
+  const ids = models.map(({ catalog }) => catalog.share_id);
+  if (new Set(ids).size !== ids.length)
+    throw new Error("Duplicate model sharing ID");
+  return models;
 }

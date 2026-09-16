@@ -1744,3 +1744,40 @@ html:has(.model-page), body:has(.model-page) { background-color: #173d35; }
 @media (prefers-reduced-motion: reduce) {
   .viewer-toolbar-backdrop { transition: none; }
 }
+
+.cell-canvas { display: block; width: 100%; max-height: 280px; color: #285b48; touch-action: none; }
+.cell-canvas circle { cursor: grab; }
+.cell-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+.cell-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; }
+.cell-fields input,.cell-fields select { min-width: 0; width: 100%; padding: 8px; font: inherit; border: 1px solid #a4b6a9; border-radius: 6px; background: transparent; color: inherit; }
+.cell-editor .shade-presets { margin: 10px 0; }
+.cell-editor button[aria-pressed="true"] { background: #d3e5ca; }
+
+.cell-cutaways { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.cell-cutaways label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+
+.editor-preset { display: flex; flex-direction: column; gap: 6px; font-size: 12px; margin: 8px 0 16px; }
+.editor-preset select,.cell-fields select { width: 100%; padding: 8px; border: 1px solid #a4b6a9; border-radius: 6px; background: transparent; color: inherit; font: inherit; }
+.node-tab-bar { display: flex; align-items: stretch; border-bottom: 1px solid #a4b6a9; margin-top: 18px; }
+.node-tabs { display: flex; overflow-x: auto; flex: 1; min-width: 0; }
+.node-tabs button { flex-shrink: 0; border: 0; border-bottom: 3px solid transparent; background: transparent; border-radius: 5px 5px 0 0; padding: 10px 9px; color: inherit; font: inherit; font-size: 12px; }
+.node-tabs button[aria-selected="true"] { border-bottom-color: #285b48; background: #e1e8dc; font-weight: 600; }
+.node-add { flex-shrink: 0; align-self: center; font-size: 22px; }
+.cell-fields { border: 1px solid #c7d1c8; border-top: 0; margin-top: 0; padding: 14px; }
+.cell-fields .number-stepper input { padding: 6px 1px; border: 0; border-radius: 0; }
+.cell-fields .number-stepper { width: 100%; }
+.node-remove { justify-self: end; align-self: end; }
+.profile-graph-scroll { overflow-x: auto; }
+.shade-profile svg { height: auto; min-width: 380px; width: 100%; }
+.shade-profile circle { cursor: ew-resize; touch-action: none; }
+.profile-dimension { background: #f6f6ed; padding: 3px; font-size: 12px; }
+.profile-dimension label { display: flex; flex-direction: column; gap: 5px; }
+.profile-dimension .number-stepper { width: 100%; }
+.profile-dimension .number-stepper input { padding: 6px 0; }
+.cell-canvas circle { touch-action: none; }
+.cell-fields .number-stepper, .profile-dimension .number-stepper { flex: none; }
+.shade-profile svg { min-width: 0; }
+.profile-dimension { font-size: 15px; }
+.profile-dimension .number-stepper { grid-template-columns: 25px minmax(0, 1fr) 25px; }
+.profile-dimension .number-stepper input { font-size: 17px; }
+.profile-dimension .number-stepper button { font-size: 21px; }

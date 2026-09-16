@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ModelDefinition } from "../models/types";
+import { applySurfaceNormals } from "./surface-normals.mjs";
 import { outlineStyle } from "./outline-style.mjs";
 import { ModelArtwork } from "../components/ModelArtwork";
 import { PartsPanel } from "./PartsPanel";
@@ -421,7 +423,7 @@ export function Viewer({
         data = next;
         modelMeasures = measures;
         objects = data.map((p, i) => {
-          const geometry = new THREE.BufferGeometry();
+          let geometry = new THREE.BufferGeometry();
           geometry.setAttribute(
             "position",
             new THREE.BufferAttribute(p.positions, 3),
@@ -431,6 +433,13 @@ export function Viewer({
             new THREE.BufferAttribute(p.normals, 3),
           );
           geometry.setIndex(new THREE.BufferAttribute(p.indices, 1));
+          if (p.surfaceNormals) geometry.setAttribute("surfaceNormal", new THREE.BufferAttribute(p.surfaceNormals, 3));
+          if (model.id === "lampshade") {
+            const indexed = geometry;
+            geometry = toCreasedNormals(indexed, Math.PI / 4);
+            indexed.dispose();
+            applySurfaceNormals(geometry);
+          }
           const mesh = new THREE.Mesh<
             THREE.BufferGeometry,
             THREE.MeshStandardMaterial | THREE.MeshBasicMaterial

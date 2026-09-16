@@ -2,6 +2,7 @@ import type { Parameters } from "../models/types";
 export type PartMesh = {
   positions: Float32Array;
   normals: Float32Array;
+  surfaceNormals?: Float32Array;
   indices: Uint32Array;
   volume: number;
   bounds: number[];
@@ -32,6 +33,7 @@ export type Response =
 export type PartInstance = {
   positions(): Float32Array;
   normals(): Float32Array;
+  surface_normals?(): Float32Array;
   indices(): Uint32Array;
   volume(): number;
   bounds(): Float64Array;

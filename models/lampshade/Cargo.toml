@@ -1,0 +1,19 @@
+[package]
+name = "model-lampshade"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "model.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+manifold-rust = "=0.13.1"
+earcutr = "=0.4.3"
+wasm-bindgen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+toml = "=0.9.12"
+serde_json.workspace = true

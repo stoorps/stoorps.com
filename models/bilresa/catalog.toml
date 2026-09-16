@@ -1,4 +1,7 @@
+backend = "cadrum"
 id = "bilresa"
+# Permanent sharing identity: never reuse model or parameter share IDs.
+share_id = 1
 default_view = "outline"
 revision = 2
 title = "BILRESA switch cover (UK)"
@@ -23,6 +26,7 @@ zoom = 1.4
 pan = [0, 0.04]
 
 [[parameters]]
+share_id = 1
 key = "num_switches_left"
 label = "BILRESAs on left"
 default = 1
@@ -32,6 +36,7 @@ step = 1
 group = "Layout"
 
 [[parameters]]
+share_id = 2
 key = "num_switches_right"
 label = "BILRESAs on right"
 default = 1
@@ -41,6 +46,7 @@ step = 1
 group = "Layout"
 
 [[parameters]]
+share_id = 3
 key = "sp_width"
 label = "Width"
 default = 85.6
@@ -53,6 +59,7 @@ advanced = false
 help = "Measure the outside width of the wall plate."
 
 [[parameters]]
+share_id = 4
 key = "sp_height"
 label = "Height"
 default = 85.35
@@ -65,6 +72,7 @@ advanced = false
 help = "Measure the outside height of the wall plate."
 
 [[parameters]]
+share_id = 5
 key = "sp_depth"
 label = "Depth"
 default = 8.19
@@ -77,6 +85,7 @@ advanced = false
 help = "Distance the plate projects from the wall."
 
 [[parameters]]
+share_id = 6
 key = "switch_tolerance"
 label = "BILRESA clearance"
 default = 0.1
@@ -89,6 +98,7 @@ advanced = true
 help = "Extra space on each side of a remote."
 
 [[parameters]]
+share_id = 7
 key = "sp_tolerance"
 label = "Plate clearance"
 default = 0.2
@@ -101,6 +111,7 @@ advanced = true
 help = "Extra space on each side of the wall plate."
 
 [[parameters]]
+share_id = 8
 key = "bracket_rail_tolerance"
 label = "Rail clearance"
 default = 0.2
@@ -113,6 +124,7 @@ advanced = true
 help = "Clearance around the sliding cover rails."
 
 [[parameters]]
+share_id = 9
 key = "cover_tolerance"
 label = "Cover clearance"
 default = 0.05
@@ -125,6 +137,7 @@ advanced = true
 help = "Gap at the removable cover joint."
 
 [[parameters]]
+share_id = 10
 key = "mag_xy_tolerance"
 label = "Magnetic plate clearance"
 default = 0.01
@@ -137,6 +150,7 @@ advanced = true
 help = "Extra space around the supplied magnetic plate."
 
 [[parameters]]
+share_id = 11
 key = "mag_adhesive_tolerance"
 label = "Adhesive recess"
 default = 0.3
@@ -149,6 +163,7 @@ advanced = true
 help = "Space for adhesive behind the magnetic plate."
 
 [[parameters]]
+share_id = 12
 key = "asm_wall_thickness"
 label = "Wall thickness"
 default = 2.5
@@ -161,6 +176,7 @@ advanced = true
 help = "Base thickness; outer walls grow with this setting."
 
 [[parameters]]
+share_id = 13
 key = "switch_pitch"
 label = "Remote spacing"
 default = 4

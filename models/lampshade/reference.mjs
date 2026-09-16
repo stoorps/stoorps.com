@@ -1,4 +1,7 @@
 import Module from "manifold-3d";
+import { connectedCells, validateOpening, latticeLayout } from "./cells.mjs";
+
+import { strandCells } from "./strand-cells.mjs";
 
 const TAU = Math.PI * 2;
 export function profile(p, t) {
@@ -9,18 +12,7 @@ export function profile(p, t) {
   return (a + (b - a) * blend) / 2;
 }
 
-export function latticeLayout(p) {
-  // Use physical spacing instead of counts, so larger shades get more cells.
-  // Keep open space between the strands even at the densest setting.
-  const spacing = Math.max(32 - (26 * p.density) / 100, 2 * p.thickness + 2);
-  const diameter =
-    (p.bottom_diameter + 2 * p.middle_diameter + p.top_diameter) / 4;
-  return {
-    spacing,
-    cells: Math.max(8, Math.round((Math.PI * diameter) / spacing)),
-    rows: Math.max(3, Math.round(p.height / spacing)),
-  };
-}
+export { latticeLayout } from "./cells.mjs";
 
 // Maximum sampled chord deviation in millimetres; used for preview and STL.
 export function sampleSections(sectionAt, seeds, tolerance = 0.05) {
@@ -104,6 +96,8 @@ export function createModule(catalog) {
         const p = JSON.parse(json);
         validate(p, catalog);
         this.p = p;
+        if (p.pattern === 1 && (p.cell_cut_inside || p.cell_cut_outside))
+          validateOpening(p);
         const { Manifold, Mesh } = wasm;
         const allocated = [];
         const own = (x) => {
@@ -234,7 +228,7 @@ export function createModule(catalog) {
             const zMount = p.height - p.mount_depth - p.plate_thickness;
             const pieces = [];
             const w = p.thickness;
-            if (p.pattern === 0)
+            if (p.pattern === 0 || (!p.cell_cut_inside && !p.cell_cut_outside))
               pieces.push(
                 annulus(
                   0,
@@ -245,38 +239,15 @@ export function createModule(catalog) {
                   96,
                 ),
               );
-            else {
-              // Opposing helical ribbons form a diamond lattice. Solid Boolean
-              // union joins crossings and rims, eliminating overlapping shells.
-              const { cells, rows } = latticeLayout(p);
-              for (let direction of [-1, 1])
-                for (let i = 0; i < cells; i++) {
-                  const sectionAt = (t) => {
-                    const z = t * p.height;
-                    const a =
-                      TAU * (i / cells + ((direction * rows) / cells) * t) +
-                      ((p.twist * Math.PI) / 180) * t;
-                    const r = radius(a, z),
-                      da = w / 2 / r;
-                    return [
-                      [r - w / 2, a - da],
-                      [r + w / 2, a - da],
-                      [r + w / 2, a + da],
-                      [r - w / 2, a + da],
-                    ].map(([r, b]) => [r * Math.cos(b), r * Math.sin(b), z]);
-                  };
-                  // Seed at least four samples per ripple cycle to avoid
-                  // aliasing, then refine only where the curve needs it.
-                  const seeds = Math.max(
-                    8,
-                    2 * Math.ceil(((p.lobes * rows) / cells) * 2),
-                  );
-                  const sections = sampleSections(sectionAt, seeds).map(
-                    (sample) => sample.section,
-                  );
-                  pieces.push(sweep(sections));
-                }
+            else if (p.cell_cut_outside) {
+              pieces.push(
+                ...strandCells(p, latticeLayout(p), radius, wasm, own),
+              );
+            } else {
+              const mesh = connectedCells(p, latticeLayout(p), radius);
+              pieces.push(raw(mesh.vertices, mesh.faces));
             }
+
             for (const [lo, hi] of [
               [0, 3],
               [p.height - 3, p.height],
@@ -287,7 +258,7 @@ export function createModule(catalog) {
                   lo,
                   hi,
                   (a, z) => radius(a, z) - w / 2 - 1,
-                  (a, z) => radius(a, z) + w / 2,
+                  (a, z) => radius(a, z) + w / 2 + 0.3,
                   Math.max(192, p.lobes * 12),
                   3,
                 ),
@@ -315,13 +286,19 @@ export function createModule(catalog) {
               throw new Error(
                 "This combination could not form a printable solid. Reduce pattern density or ripple depth.",
               );
-            const components = s.decompose();
-            const count = components.length;
-            components.forEach((c) => c.delete());
-            if (count !== 1)
+            const components = s.decompose().map(own);
+            const material = components.filter((c) => c.volume() > 0);
+            // Reinforcing rings can seal a cell opening into an internal pocket.
+            // This design has no intentional enclosed cavities: retain the outer
+            // material shell to fill those pockets, preserving all through-holes.
+            // Positive disconnected pieces are never silently discarded.
+            if (material.length !== 1)
               throw new Error(
-                "This configuration leaves disconnected material. Increase strand thickness or reduce twist.",
+                p.cell_cut_outside
+                  ? "With outside cut away, neighbouring shapes must overlap with solid material. Increase cell size or thickness, adjust the nodes or row offset, or keep the outside."
+                  : "This configuration leaves disconnected material. Increase strand thickness or reduce twist.",
               );
+            s = material[0];
             const mesh = s.getMesh(),
               positions = new Float32Array(mesh.numVert * 3);
             for (let i = 0; i < mesh.numVert; i++) {
@@ -336,6 +313,9 @@ export function createModule(catalog) {
               positions,
               new Uint32Array(mesh.triVerts),
               s.volume(),
+              p,
+              flipHeight,
+              flip,
             );
           }
         } finally {
@@ -387,7 +367,10 @@ export function createModule(catalog) {
   };
 }
 class Part {
-  constructor(positions, indices, volume) {
+  constructor(positions, indices, volume, parameters, flipHeight, flip) {
+    this.parameters = parameters;
+    this.flipHeight = flipHeight;
+    this.flip = flip;
     this.vertices = positions;
     this.triangles = indices;
     this.v = volume;
@@ -397,6 +380,49 @@ class Part {
   }
   indices() {
     return this.triangles.slice();
+  }
+  // Analytic directions only on the two curved skins. Zero marks hardware,
+  // joins and other surfaces, which retain their ordinary creased normals.
+  surface_normals() {
+    const p = this.parameters,
+      out = new Float32Array(this.vertices.length);
+    const twist = (p.twist * Math.PI) / 180 / p.height;
+    for (let i = 0; i < out.length; i += 3) {
+      const x = this.vertices[i],
+        y = this.vertices[i + 1] * (this.flip ? -1 : 1),
+        z = this.flip
+          ? this.flipHeight - this.vertices[i + 2]
+          : this.vertices[i + 2];
+      if (z < 0 || z > p.height) continue;
+      const a = Math.atan2(y, x),
+        r = Math.hypot(x, y),
+        phase = p.lobes * (a - twist * z);
+      const offset =
+        r - profile(p, z / p.height) - p.ripple_depth * Math.sin(phase);
+      if (Math.abs(Math.abs(offset) - p.thickness / 2) > 0.0001) continue;
+      const t = z / p.height,
+        u = t < 0.5 ? t * 2 : t * 2 - 1;
+      const delta =
+        t < 0.5
+          ? p.middle_diameter - p.bottom_diameter
+          : p.top_diameter - p.middle_diameter;
+      const profileSlope =
+        (delta / p.height) *
+        (1 - p.curve + ((p.curve * Math.PI) / 2) * Math.sin(Math.PI * u));
+      const da = p.ripple_depth * p.lobes * Math.cos(phase);
+      const dz = profileSlope - da * twist,
+        side = offset > 0 ? 1 : -1;
+      const normal = [
+        Math.cos(a) + (da / r) * Math.sin(a),
+        Math.sin(a) - (da / r) * Math.cos(a),
+        -dz,
+      ];
+      const length = Math.hypot(...normal);
+      for (let k = 0; k < 3; k++)
+        out[i + k] =
+          ((side * normal[k]) / length) * (this.flip && k > 0 ? -1 : 1);
+    }
+    return out;
   }
   normals() {
     const n = new Float32Array(this.vertices.length),

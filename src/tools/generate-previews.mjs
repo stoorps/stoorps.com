@@ -8,22 +8,10 @@ await mkdir("src/generated/previews", { recursive: true });
 const images = {};
 for (const { catalog } of await readModels()) {
   const directory = path.resolve("src/generated/models", catalog.id);
-  let module;
-  if (catalog.runtime === "mesh") {
-    module = (
-      await import(
-        pathToFileURL(path.resolve("models", catalog.id, "model.mjs"))
-      )
-    ).createModule(catalog);
-    await module.initialize({
-      wasmBinary: await readFile("node_modules/manifold-3d/manifold.wasm"),
-    });
-  } else {
-    module = await import(pathToFileURL(path.join(directory, "model.js")));
-    await module.default({
-      module_or_path: await readFile(path.join(directory, "model_bg.wasm")),
-    });
-  }
+  const module = await import(pathToFileURL(path.join(directory, "model.js")));
+  await module.default({
+    module_or_path: await readFile(path.join(directory, "model_bg.wasm")),
+  });
   const embedded = JSON.parse(module.catalog_json());
   if (embedded.id !== catalog.id || embedded.revision !== catalog.revision)
     throw new Error(
