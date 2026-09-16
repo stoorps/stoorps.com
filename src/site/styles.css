@@ -1628,3 +1628,52 @@ body:has(.model-page) .site-footer,
     overflow: hidden;
   }
 }
+
+/* Let the mobile model continue behind the independently fading UI surfaces. */
+@media (max-width: 760px) {
+  .viewer { overflow: visible; }
+  .viewer-stage { z-index: 0; }
+  .viewer .viewer-canvas, .viewer .measurement-overlay {
+    top: calc(-1 * var(--canvas-extension, 0px));
+    height: calc(100% + var(--canvas-extension, 0px));
+  }
+  .model-page .model-title { position: relative; z-index: 2; transition: background-color 220ms ease; }
+  .model-page .model-title[data-model-under] { background-color: rgb(23 61 53 / 60%); }
+  .viewer .view-modes, .viewer .orientation-controls, .viewer .viewer-tools { z-index: 2; }
+  .viewer .view-modes, .viewer .orientation-controls { position: relative; transition: background-color 220ms ease; }
+  .viewer-outline .orientation-controls { background: #173d35; border-radius: 7px; }
+  .viewer-solid .orientation-controls { background: #e6ede6; border-radius: 7px; }
+  .viewer-outline .view-modes[data-model-under], .viewer-outline .orientation-controls[data-model-under] { background-color: rgb(23 61 53 / 60%); }
+  .viewer-solid .view-modes[data-model-under], .viewer-solid .orientation-controls[data-model-under] { background-color: rgb(230 237 230 / 60%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .model-page .model-title, .viewer .view-modes, .viewer .orientation-controls { transition: none; }
+}
+
+/* Desktop shares the toolbar underlay, stopping at the top of the cards. */
+@media (min-width: 761px) {
+  .viewer-stage { z-index: 0; }
+  .viewer .viewer-canvas, .viewer .measurement-overlay {
+    top: calc(-1 * var(--canvas-extension, 0px));
+    height: calc(100% + var(--canvas-extension, 0px));
+  }
+  .viewer-toolbar { pointer-events: none; }
+  .viewer-toolbar > * { pointer-events: auto; }
+  .viewer .view-modes, .viewer .orientation-controls, .viewer .viewer-tools {
+    position: relative;
+    border-radius: 7px;
+    transition: background-color 220ms ease;
+  }
+  .viewer-outline .orientation-controls, .viewer-outline .viewer-tools { background: #173d35; }
+  .viewer-solid .orientation-controls, .viewer-solid .viewer-tools { background: #e6ede6; }
+  .viewer-outline [data-model-under] { background-color: rgb(23 61 53 / 60%); }
+  .viewer-solid [data-model-under] { background-color: rgb(230 237 230 / 60%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewer .view-modes, .viewer .orientation-controls, .viewer .viewer-tools { transition: none; }
+}
+
+/* Frame the first mobile screen with Customise just visible below the viewer. */
+@media (max-width: 760px) {
+  .viewer { height: var(--mobile-viewer-height, 60dvh); min-height: 220px; }
+}

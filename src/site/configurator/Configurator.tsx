@@ -72,6 +72,40 @@ export function Configurator({ model }: { model: ModelDefinition }) {
     if (queued) void toggleCard(queued);
   }
   const [downloadHost, setDownloadHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const stack = cardStack.current;
+    const workspace = stack?.parentElement;
+    const viewer = workspace?.querySelector<HTMLElement>(".viewer");
+    const heading = stack?.querySelector<HTMLElement>(".controls-heading");
+    if (!stack || !workspace || !viewer || !heading) return;
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!matchMedia("(max-width: 760px)").matches) {
+          viewer.style.removeProperty("--mobile-viewer-height");
+          return;
+        }
+        const viewRect = viewer.getBoundingClientRect();
+        const afterViewer = stack.getBoundingClientRect().top - viewRect.bottom;
+        // Leave the whole Customise header visible as an invitation to scroll.
+        const available = window.innerHeight - (viewRect.top + window.scrollY) - afterViewer - heading.getBoundingClientRect().height - 2;
+        viewer.style.setProperty("--mobile-viewer-height", `${Math.max(220, available)}px`);
+      });
+    };
+    const observer = new ResizeObserver(measure);
+    [heading, workspace.querySelector(".download-actions"), document.querySelector(".model-title"), document.querySelector(".site-header")].forEach(element => {
+      if (element) observer.observe(element);
+    });
+    window.addEventListener("resize", measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+      viewer.style.removeProperty("--mobile-viewer-height");
+    };
+  }, [downloadHost]);
   const helpButton = useRef<HTMLButtonElement>(null);
   const helpPanel = useRef<HTMLDivElement>(null);
   const [helpPosition, setHelpPosition] = useState({ top: 0, left: 0 });
@@ -298,17 +332,6 @@ export function Configurator({ model }: { model: ModelDefinition }) {
     >
       {downloadHost ? createPortal(downloadActions, downloadHost) : downloadActions}
       <aside ref={cardStack} className="controls-stack" aria-label="Design information and setup">
-        {(["about", "print"] as const).map(card => (
-          <section className={`info-card ${openCard === card ? "is-open" : ""}`} key={card}>
-            <h2><button className="card-toggle" aria-expanded={openCard === card} aria-controls={`${card}-content`} onClick={() => toggleCard(card)}>
-              {card === "about" ? "About the design" : "Before you print"}<span aria-hidden="true">{openCard === card ? "⌃" : "⌄"}</span>
-            </button></h2>
-            <div id={`${card}-content`} className="info-card-content" hidden={openCard !== card}>
-              <p>{card === "about" ? model.overview || model.description : model.print_notes || "Check the dimensions and tolerances for your printer before a full print."}</p>
-              {card === "about" && model.source_url && <a href={model.source_url}>Original design ↗</a>}
-            </div>
-          </section>
-        ))}
         <section className={`controls-panel ${openCard === "setup" ? "is-open" : ""}`}>
 
         <div className="controls-heading">
@@ -322,7 +345,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                 disabled={!ready || exporting}
                 onClick={copyLink}
               >
-                {copyStatus === "Link copied" ? "✓" : <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 13 4-4m-6 6-2 2a4 4 0 0 1-6-6l4-4a4 4 0 0 1 6 0m4 2 2-2a4 4 0 0 0-6-6l-2 2" transform="translate(3 3) scale(.85)"/></svg>}
+                {copyStatus === "Link copied" ? "✓" : <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7M14 11a5 5 0 0 0-7.1 0l-3 3a5 5 0 0 0 7.1 7.1l1.7-1.7"/></svg>}
               </button>
               <button
                 className="icon-button"
@@ -378,6 +401,17 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         )}
         </div>
         </section>
+        {(["about", "print"] as const).map(card => (
+          <section className={`info-card ${openCard === card ? "is-open" : ""}`} key={card}>
+            <h2><button className="card-toggle" aria-expanded={openCard === card} aria-controls={`${card}-content`} onClick={() => toggleCard(card)}>
+              {card === "about" ? "About the design" : "Before you print"}<span aria-hidden="true">{openCard === card ? "⌃" : "⌄"}</span>
+            </button></h2>
+            <div id={`${card}-content`} className="info-card-content" hidden={openCard !== card}>
+              <p>{card === "about" ? model.overview || model.description : model.print_notes || "Check the dimensions and tolerances for your printer before a full print."}</p>
+              {card === "about" && model.source_url && <a href={model.source_url}>Original design ↗</a>}
+            </div>
+          </section>
+        ))}
       </aside>
       <Viewer
         model={model}

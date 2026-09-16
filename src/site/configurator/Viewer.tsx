@@ -92,6 +92,7 @@ export function Viewer({
     ortho.up.set(0, 1, 0);
     const camera = ortho;
     let controls = new OrbitControls(camera, renderer.domElement);
+    renderer.domElement.style.touchAction = "auto";
     controls.enableDamping = true;
     controls.minDistance = 30;
     controls.maxDistance = 3000;
@@ -391,6 +392,7 @@ export function Viewer({
       const target = controls.target.clone();
       controls.dispose();
       controls = new OrbitControls(camera, renderer.domElement);
+      renderer.domElement.style.touchAction = "auto";
       controls.target.copy(target);
       controls.enableDamping = true;
       controls.minDistance = 30;
@@ -504,6 +506,86 @@ export function Viewer({
       },
     };
     view.current = api;
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const touchPointers = new Set<number>();
+    let modelGesture = false;
+    function overPart(clientX: number, clientY: number) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.set((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2);
+      camera.updateMatrixWorld();
+      raycaster.setFromCamera(pointer, camera);
+      return objects.some(({ mesh }, index) => {
+        if (!settings.visible[index]) return false;
+        mesh.updateMatrixWorld();
+        return raycaster.intersectObject(mesh, false).length > 0;
+      });
+    }
+    const gatePointer = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      if (!touchPointers.size) modelGesture = overPart(event.clientX, event.clientY);
+      touchPointers.add(event.pointerId);
+      if (!modelGesture) event.stopImmediatePropagation();
+    };
+    const endPointer = (event: PointerEvent) => {
+      touchPointers.delete(event.pointerId);
+      if (!touchPointers.size) modelGesture = false;
+    };
+    // Keep native page scrolling available. Cancel it only for a gesture that
+    // started on geometry; changing touch-action after pointerdown is too late.
+    const gateTouch = (event: TouchEvent) => {
+      if (modelGesture && event.cancelable) event.preventDefault();
+    };
+    const gateWheel = (event: WheelEvent) => {
+      if (!overPart(event.clientX, event.clientY)) event.stopImmediatePropagation();
+    };
+    renderer.domElement.addEventListener("pointerdown", gatePointer, true);
+    renderer.domElement.addEventListener("touchstart", gateTouch, { passive: false });
+    renderer.domElement.addEventListener("wheel", gateWheel, true);
+    window.addEventListener("pointerup", endPointer);
+    window.addEventListener("pointercancel", endPointer);
+    const mobile = matchMedia("(max-width: 760px)");
+    const viewer = node.closest<HTMLElement>(".viewer")!;
+    const title = node.closest(".model-page")?.querySelector<HTMLElement>(".model-title");
+    const stage = node.parentElement!;
+    const topGroups = Array.from(viewer.querySelectorAll<HTMLElement>(".view-modes, .orientation-controls, .viewer-tools"));
+    const regions = title ? [title, ...topGroups] : topGroups;
+    let extension = -1;
+    const projected = new THREE.Vector3();
+    function updateOverlap() {
+      const boundary = mobile.matches && title ? title : viewer;
+      const nextExtension = Math.max(0, stage.getBoundingClientRect().top - boundary.getBoundingClientRect().top);
+      if (Math.abs(nextExtension - extension) > .5) {
+        extension = nextExtension;
+        viewer.style.setProperty("--canvas-extension", `${extension}px`);
+      }
+      const canvasRect = node.getBoundingClientRect();
+      const boxes = data.flatMap((part, index) => {
+        if (!settings.visible[index] || !objects[index]) return [];
+        let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+        for (let corner = 0; corner < 8; corner++) {
+          projected.set(part.bounds[corner & 1 ? 3 : 0], part.bounds[corner & 2 ? 4 : 1], part.bounds[corner & 4 ? 5 : 2]);
+          projected.add(objects[index].mesh.position).project(camera);
+          if (!Number.isFinite(projected.x + projected.y + projected.z) || Math.abs(projected.z) > 1) continue;
+          const x = canvasRect.left + (projected.x + 1) * canvasRect.width / 2;
+          const y = canvasRect.top + (1 - projected.y) * canvasRect.height / 2;
+          left = Math.min(left, x); right = Math.max(right, x);
+          top = Math.min(top, y); bottom = Math.max(bottom, y);
+        }
+        return [{ left, right, top, bottom }];
+      });
+      regions.forEach(region => {
+        if ((!mobile.matches && region === title) || (mobile.matches && region.classList.contains("viewer-tools"))) {
+          region.removeAttribute("data-model-under");
+          return;
+        }
+        const rect = region.getBoundingClientRect();
+        // A small exit margin prevents flicker when an edge grazes a control.
+        const margin = region.hasAttribute("data-model-under") ? 8 : 0;
+        const overlaps = boxes.some(box => box.right > rect.left - margin && box.left < rect.right + margin && box.bottom > rect.top - margin && box.top < rect.bottom + margin);
+        if (overlaps !== region.hasAttribute("data-model-under")) region.toggleAttribute("data-model-under", overlaps);
+      });
+    }
     const resize = new ResizeObserver(() => {
       ({ width, height } = node.getBoundingClientRect());
       width = Math.max(width, 1);
@@ -568,6 +650,7 @@ export function Viewer({
           alpha < 1 || settings.mode !== "solid";
       }
       renderer.render(scene, camera);
+      updateOverlap();
       for (const { measurement: m, group, line, text } of annotations) {
         const a = new THREE.Vector3(...m.from).project(camera),
           b = new THREE.Vector3(...m.to).project(camera);
@@ -599,6 +682,13 @@ export function Viewer({
     return () => {
       view.current = null;
       resize.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", gatePointer, true);
+      renderer.domElement.removeEventListener("touchstart", gateTouch);
+      renderer.domElement.removeEventListener("wheel", gateWheel, true);
+      window.removeEventListener("pointerup", endPointer);
+      window.removeEventListener("pointercancel", endPointer);
+      viewer.style.removeProperty("--canvas-extension");
+      regions.forEach(region => region.removeAttribute("data-model-under"));
       renderer.setAnimationLoop(null);
       controls.dispose();
       clear();
