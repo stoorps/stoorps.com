@@ -92,7 +92,6 @@ export function Viewer({
     ortho.up.set(0, 1, 0);
     const camera = ortho;
     let controls = new OrbitControls(camera, renderer.domElement);
-    renderer.domElement.style.touchAction = "auto";
     controls.enableDamping = true;
     controls.minDistance = 30;
     controls.maxDistance = 3000;
@@ -267,6 +266,9 @@ export function Viewer({
       ortho.updateProjectionMatrix();
     }
     let fitting = false;
+    let defaultFraming = true;
+    const leaveDefaultFraming = () => { defaultFraming = false; };
+    controls.addEventListener("start", leaveDefaultFraming);
     function fit() {
       fitting = true;
       const box = bounds();
@@ -292,9 +294,18 @@ export function Viewer({
         ortho.position.copy(center).addScaledVector(direction, 1000);
         ortho.updateProjectionMatrix();
       } else {
-        ortho.zoom = 1;
+        const preset = model.camera?.[matchMedia("(max-width: 760px)").matches ? "mobile" : "desktop"];
+        ortho.zoom = preset?.zoom ?? 1;
         ortho.up.set(0, 0, 1);
-        ortho.position.copy(center).add(new THREE.Vector3(...outlineStyle.direction).normalize().multiplyScalar(1000));
+        ortho.position.copy(center).add(new THREE.Vector3(...(preset?.direction ?? outlineStyle.direction)).normalize().multiplyScalar(1000));
+        ortho.lookAt(center);
+        const pan = preset?.pan ?? [0, 0];
+        const offset = new THREE.Vector3(1, 0, 0).applyQuaternion(ortho.quaternion)
+          .multiplyScalar(-pan[0] * (ortho.right - ortho.left) / ortho.zoom)
+          .add(new THREE.Vector3(0, 1, 0).applyQuaternion(ortho.quaternion)
+            .multiplyScalar(pan[1] * (ortho.top - ortho.bottom) / ortho.zoom));
+        controls.target.add(offset);
+        ortho.position.add(offset);
         ortho.updateProjectionMatrix();
       }
       refreshOrbitBasis();
@@ -392,7 +403,6 @@ export function Viewer({
       const target = controls.target.clone();
       controls.dispose();
       controls = new OrbitControls(camera, renderer.domElement);
-      renderer.domElement.style.touchAction = "auto";
       controls.target.copy(target);
       controls.enableDamping = true;
       controls.minDistance = 30;
@@ -401,6 +411,7 @@ export function Viewer({
       controls.maxZoom = 10;
       controls.update();
       controls.addEventListener("change", onOrbitChange);
+      controls.addEventListener("start", leaveDefaultFraming);
     }
     const api: View = {
       update(next, measures, colors) {
@@ -489,6 +500,7 @@ export function Viewer({
       },
       display,
       reset() {
+        defaultFraming = true;
         transition = null;
         settings.angle = null;
         setAngle(null);
@@ -496,6 +508,7 @@ export function Viewer({
         annotationBuild();
       },
       rotate(x, y) {
+        defaultFraming = false;
         settings.angle = null;
         setAngle(null);
         const offset = camera.position.clone().sub(controls.target);
@@ -508,8 +521,6 @@ export function Viewer({
     view.current = api;
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
-    const touchPointers = new Set<number>();
-    let modelGesture = false;
     function overPart(clientX: number, clientY: number) {
       const rect = renderer.domElement.getBoundingClientRect();
       pointer.set((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2);
@@ -521,29 +532,10 @@ export function Viewer({
         return raycaster.intersectObject(mesh, false).length > 0;
       });
     }
-    const gatePointer = (event: PointerEvent) => {
-      if (event.pointerType !== "touch") return;
-      if (!touchPointers.size) modelGesture = overPart(event.clientX, event.clientY);
-      touchPointers.add(event.pointerId);
-      if (!modelGesture) event.stopImmediatePropagation();
-    };
-    const endPointer = (event: PointerEvent) => {
-      touchPointers.delete(event.pointerId);
-      if (!touchPointers.size) modelGesture = false;
-    };
-    // Keep native page scrolling available. Cancel it only for a gesture that
-    // started on geometry; changing touch-action after pointerdown is too late.
-    const gateTouch = (event: TouchEvent) => {
-      if (modelGesture && event.cancelable) event.preventDefault();
-    };
     const gateWheel = (event: WheelEvent) => {
       if (!overPart(event.clientX, event.clientY)) event.stopImmediatePropagation();
     };
-    renderer.domElement.addEventListener("pointerdown", gatePointer, true);
-    renderer.domElement.addEventListener("touchstart", gateTouch, { passive: false });
     renderer.domElement.addEventListener("wheel", gateWheel, true);
-    window.addEventListener("pointerup", endPointer);
-    window.addEventListener("pointercancel", endPointer);
     const mobile = matchMedia("(max-width: 760px)");
     const viewer = node.closest<HTMLElement>(".viewer")!;
     const title = node.closest(".model-page")?.querySelector<HTMLElement>(".model-title");
@@ -592,7 +584,8 @@ export function Viewer({
       height = Math.max(height, 1);
       renderer.setSize(width, height);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      resizeCamera();
+      if (initialized && defaultFraming && !settings.angle) fit();
+      else resizeCamera();
     });
     resize.observe(node);
     const lost = (e: Event) => {
@@ -682,11 +675,7 @@ export function Viewer({
     return () => {
       view.current = null;
       resize.disconnect();
-      renderer.domElement.removeEventListener("pointerdown", gatePointer, true);
-      renderer.domElement.removeEventListener("touchstart", gateTouch);
       renderer.domElement.removeEventListener("wheel", gateWheel, true);
-      window.removeEventListener("pointerup", endPointer);
-      window.removeEventListener("pointercancel", endPointer);
       viewer.style.removeProperty("--canvas-extension");
       regions.forEach(region => region.removeAttribute("data-model-under"));
       renderer.setAnimationLoop(null);

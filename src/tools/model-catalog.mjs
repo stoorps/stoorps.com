@@ -9,6 +9,7 @@ export function validateCatalog(value, directory) {
     "revision",
     "title",
     "description",
+    "camera",
     "parameters",
     "parts",
     "configuration_hint",
@@ -40,6 +41,19 @@ export function validateCatalog(value, directory) {
     !["https:", "http:"].includes(new URL(value.source_url).protocol)
   )
     throw new Error(`${directory}: invalid source URL`);
+  if (value.camera !== undefined) {
+    const table = value.camera;
+    if (!table || typeof table !== "object" || Array.isArray(table) || Object.keys(table).some(key => !["desktop", "mobile"].includes(key)))
+      throw new Error(`${directory}: invalid camera table`);
+    for (const preset of Object.values(table)) {
+      if (!preset || typeof preset !== "object" || Object.keys(preset).some(key => !["direction", "zoom", "pan"].includes(key)) ||
+          !Array.isArray(preset.direction) || preset.direction.length !== 3 || !preset.direction.every(Number.isFinite) ||
+          Math.hypot(...preset.direction) < 0.001 || Math.hypot(...preset.direction.slice(0, 2)) < 0.001 ||
+          !Number.isFinite(preset.zoom) || preset.zoom < 0.2 || preset.zoom > 10 ||
+          !Array.isArray(preset.pan) || preset.pan.length !== 2 || !preset.pan.every(n => Number.isFinite(n) && Math.abs(n) <= 1))
+        throw new Error(`${directory}: invalid camera preset`);
+    }
+  }
   if (!Array.isArray(value.parameters) || !value.parameters.length)
     throw new Error(`${directory}: parameters are required`);
   const keys = new Set();

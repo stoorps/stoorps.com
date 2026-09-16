@@ -9,6 +9,18 @@ overview = "The main body holds your BILRESA remotes beside the wall switch. A r
 print_notes = "Measure your wall plate and adjust its width, height and depth before printing. Set the adhesive recess to suit the thickness of your mounting adhesive."
 source_url = "https://cad.onshape.com/documents/a8d7f806b021fde567015702/w/f3c1ffb1b3be092d2a2ce889/e/95dc2ef3acda41e95cefbb8f"
 
+# Direction points from the model towards the camera (Z is up).
+# Zoom multiplies automatic fitting; pan is a fraction of the canvas, right/down.
+[camera.desktop]
+direction = [0.44482708, -0.59876567, 0.66603946]
+zoom = 1.3782067
+pan = [0, 0]
+
+[camera.mobile]
+direction = [1, -1, 1.4]
+zoom = 1.4
+pan = [0, 0.04]
+
 [[parameters]]
 key = "num_switches_left"
 label = "BILRESAs on left"

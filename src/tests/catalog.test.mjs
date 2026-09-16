@@ -24,3 +24,12 @@ test("rejects broken metadata before it reaches the site", async () => {
   ])
     assert.throws(() => validateCatalog(value, "bilresa"));
 });
+
+test("camera presets are optional and reject unsafe projection values", async () => {
+  const { catalog } = (await readModels())[0];
+  const { camera, ...withoutCamera } = catalog;
+  assert.doesNotThrow(() => validateCatalog(withoutCamera, catalog.id));
+  for (const change of [{ direction: [0, 0, 0] }, { direction: [0, 0, 1] }, { zoom: 0 }, { pan: [NaN, 0] }, { pan: [0] }]) {
+    assert.throws(() => validateCatalog({ ...catalog, camera: { mobile: { ...camera.mobile, ...change } } }, catalog.id));
+  }
+});

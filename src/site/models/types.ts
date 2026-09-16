@@ -11,7 +11,13 @@ export type ParameterDefinition = {
   max: number;
   step: number;
 };
+export type CameraPreset = {
+  direction: readonly [number, number, number];
+  zoom: number;
+  pan: readonly [number, number];
+};
 export type ModelDefinition = {
+  camera?: { desktop?: CameraPreset; mobile?: CameraPreset };
   id: string;
   revision: number;
   title: string;
