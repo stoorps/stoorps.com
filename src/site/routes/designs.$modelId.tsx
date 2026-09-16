@@ -9,6 +9,7 @@ export const Route = createFileRoute("/designs/$modelId")({
   },
   head: ({ loaderData }) => ({
     meta: [
+      { name: "theme-color", content: "#173d35" },
       { title: `${loaderData?.title || "Design"} — stoorps` },
       { name: "description", content: loaderData?.description || "" },
     ],

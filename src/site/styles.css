@@ -1677,3 +1677,7 @@ body:has(.model-page) .site-footer,
 @media (max-width: 760px) {
   .viewer { height: var(--mobile-viewer-height, 60dvh); min-height: 220px; }
 }
+
+/* Match overscroll and Safari's sampled browser chrome to the current page. */
+html, body { background-color: #1e1e20; }
+html:has(.model-page), body:has(.model-page) { background-color: #173d35; }

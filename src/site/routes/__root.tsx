@@ -14,6 +14,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      { name: "theme-color", content: "#1e1e20" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "stoorps — Things I make" },
       { name: "description", content: site.description },
