@@ -14,12 +14,12 @@ function Notices() {
       </h1>
       <p>
         The configurator uses cadrum and Open CASCADE Technology to generate CAD
-        geometry, and Three.js to display it. The site uses React and TanStack
+        geometry, Manifold for lampshade meshes, and Three.js to display it. The site uses React and TanStack
         Start.
       </p>
       <p>
         Open CASCADE Technology is licensed under LGPL 2.1 with the Open CASCADE
-        additional exception. The other primary libraries listed here use the
+        additional exception. Manifold uses Apache 2.0. The other primary libraries listed here use the
         MIT licence.
       </p>
       <p>

@@ -165,3 +165,41 @@ test("decimal dimensions and advanced overrides round-trip; legacy counts migrat
     encodeConfiguration(bilresa, { ...params, sp_width: 90.123 }),
   );
 });
+
+test("older lampshade links retain shape and migrate counts to density", () => {
+  const model = getModel("lampshade");
+  const p = decodeConfiguration(
+    model,
+    encodeRaw({
+      schema: 1,
+      model: "lampshade",
+      modelRevision: 1,
+      overrides: {
+        bottom_diameter: 200,
+        middle_diameter: 120,
+        top_diameter: 200,
+        cells: 32,
+        rows: 14,
+      },
+    }),
+  );
+  assert.equal(p.middle_diameter, 120);
+  assert.ok(p.density >= 0 && p.density <= 100);
+  assert.ok(!("cells" in p));
+  assert.ok(!("rows" in p));
+  assert.deepEqual(
+    decodeConfiguration(model, encodeConfiguration(model, p)),
+    p,
+  );
+  assert.throws(() =>
+    decodeConfiguration(
+      model,
+      encodeRaw({
+        schema: 1,
+        model: "lampshade",
+        modelRevision: 1,
+        overrides: { cells: 999 },
+      }),
+    ),
+  );
+});

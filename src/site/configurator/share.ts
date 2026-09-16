@@ -64,7 +64,11 @@ export function decodeConfiguration(
     throw new Error("This link belongs to a different model.");
   const legacy =
     model.id === "bilresa" && model.revision === 2 && value.modelRevision === 1;
-  if (value.modelRevision !== model.revision && !legacy)
+  const legacyShade =
+    model.id === "lampshade" &&
+    model.revision === 2 &&
+    value.modelRevision === 1;
+  if (value.modelRevision !== model.revision && !legacy && !legacyShade)
     throw new Error(
       "This model revision is unavailable. The design has not been substituted.",
     );
@@ -72,6 +76,19 @@ export function decodeConfiguration(
     throw new Error("This configuration has invalid settings.");
   const params = defaults(model);
   for (const [key, valueOverride] of Object.entries(value.overrides)) {
+    if (legacyShade && ["cells", "rows"].includes(key)) {
+      const [min, max] = key === "cells" ? [8, 32] : [3, 14];
+      if (
+        typeof valueOverride !== "number" ||
+        !Number.isInteger(valueOverride) ||
+        valueOverride < min ||
+        valueOverride > max
+      )
+        throw new Error("This older link contains invalid mesh counts.");
+      continue;
+    }
+    if (legacyShade && key === "density")
+      throw new Error("This older link contains unsupported settings.");
     if (
       !model.parameters.some((p) => p.key === key) ||
       typeof valueOverride !== "number"
@@ -84,6 +101,24 @@ export function decodeConfiguration(
         "This older layout uses more than four BILRESAs on a side. The current design supports 0–4; choose a new layout to continue.",
       );
     params[key] = valueOverride;
+  }
+  if (legacyShade) {
+    // Preserve shape and fixture settings. Approximate the former cell area;
+    // a single density cannot preserve independent horizontal/vertical counts.
+    const cells = Number(value.overrides.cells ?? 20),
+      rows = Number(value.overrides.rows ?? 8);
+    const diameter =
+      (params.bottom_diameter +
+        2 * params.middle_diameter +
+        params.top_diameter) /
+      4;
+    const spacing = Math.sqrt(
+      (((Math.PI * diameter) / cells) * params.height) / rows,
+    );
+    params.density = Math.max(
+      0,
+      Math.min(100, Math.round(((32 - spacing) / 26) * 100)),
+    );
   }
   validateParameters(model, params);
   return params;

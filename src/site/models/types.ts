@@ -1,5 +1,6 @@
 export type Parameters = Record<string, number>;
 export type ParameterDefinition = {
+  options?: string[];
   key: string;
   unit?: string;
   group?: string;
@@ -17,6 +18,9 @@ export type CameraPreset = {
   pan: readonly [number, number];
 };
 export type ModelDefinition = {
+  default_view?: "solid" | "outline";
+  runtime?: "mesh";
+  formats?: ("stl" | "step")[];
   camera?: { desktop?: CameraPreset; mobile?: CameraPreset };
   id: string;
   revision: number;

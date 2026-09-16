@@ -7,6 +7,7 @@ import { configurationUrl, parametersFromHash } from "./share";
 import { GeometryEngine } from "./engine";
 import { ParameterGroup } from "./ParameterGroup";
 import { ParameterControl } from "./ParameterControl";
+import { LampshadeProfile, LampshadeGuidance } from "./LampshadeControls";
 import { Viewer } from "./Viewer";
 import type { BuildResult } from "./protocol";
 function download(bytes: Uint8Array, name: string) {
@@ -301,10 +302,10 @@ export function Configurator({ model }: { model: ModelDefinition }) {
               onClick={() => exportFiles(selectedParts.length > 1 ? "zip" : "stl")}>
               <span aria-hidden="true">↓</span> STLs ({selectedParts.length})
             </button>
-            <button className="secondary" aria-label="Download STEP"
+            {(!model.formats || model.formats.includes("step")) && <button className="secondary" aria-label="Download STEP"
               disabled={!ready || exporting || !selectedParts.length} onClick={() => exportFiles("step")}>
               <span aria-hidden="true">↓</span> STEP
-            </button>
+            </button>}
             <button ref={helpButton} className="icon-button download-info" aria-label="About downloads" popoverTarget="export-help" onClick={positionHelp}>
               <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg>
             </button>
@@ -312,7 +313,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
           <div ref={helpPanel} id="export-help" popover="auto" className="export-help" style={helpPosition} onToggle={event => { setHelpOpen(event.newState === "open"); if (event.newState === "open") positionHelp(); }}>
             <strong>About downloads</strong>
             <p>{selectedParts.length ? `${selectedParts.length} parts selected for export.` : "Select at least one part to download."}</p>
-            <p>STEP keeps assembled positions. A single STL downloads directly; multiple STLs download as a ZIP. Dimensions are in millimetres.</p>
+            <p>{model.formats?.length === 1 ? "This design exports STL meshes. " : "STEP keeps assembled positions. "}A single STL downloads directly; multiple STLs download as a ZIP. Dimensions are in millimetres.</p>
             <button className="quiet-button" popoverTarget="export-help" popoverTargetAction="hide">Close</button>
           </div>
         <p className="sr-only" role="status">
@@ -386,7 +387,8 @@ export function Configurator({ model }: { model: ModelDefinition }) {
           </div>
         )}
         <fieldset disabled={exporting || !!linkError || !params}>
-          <legend className="sr-only">Switch layout</legend>
+          <legend className="sr-only">Design settings</legend>
+          {model.id === "lampshade" && <LampshadeProfile params={displayed} onChange={setParams} />}
           {[...new Set(model.parameters.map(p => p.group || "Parameters"))].map(group => (
             <ParameterGroup key={group} name={group}>
               {model.parameters.filter(p => (p.group || "Parameters") === group).map(p => (
@@ -396,6 +398,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
             </ParameterGroup>
           ))}
         </fieldset>
+        {model.id === "lampshade" && <LampshadeGuidance params={displayed} result={ready ? result : null} />}
         <span className="sr-only" role="status">
           {copyStatus}
         </span>
@@ -425,6 +428,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         ))}
       </aside>
       <Viewer
+        key={`${model.id}-${displayed.fit_test ?? 0}`}
         model={model}
         parts={result?.parts || []}
         visible={visible}
@@ -435,6 +439,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         setVisible={setVisible}
         setIncluded={setIncluded}
         exporting={exporting}
+        generating={!ready && !error && !linkError && !validation}
       />
     </div>
   );

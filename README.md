@@ -52,7 +52,7 @@ The preview serves `dist/client` on port 4174. For a repository Pages site use `
 
 ## Models
 
-Each directory in `models/` contains a Cargo crate and `catalog.toml`. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
+Each CAD model directory in `models/` contains a Cargo crate and `catalog.toml`; mesh models use `model.mjs` and a catalogue with `runtime = "mesh"`. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
 
 See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
@@ -71,3 +71,9 @@ The obsolete root demo pages, `web/` UI/worker, central handwritten `catalog.ts`
 The deployment workflow remains manual. The existing stoorps.com repository, DNS and Vercel deployment have not been changed.
 
 Catalogue artwork is generated automatically during `npm run build` from each model's default WASM geometry. It uses the same outline palette, angle and transparency as the configurator, and is served as a static SVG. To refresh images alone, run `npm run previews:generate` after `npm run wasm:build`. No manually maintained model illustrations are needed.
+
+## Curve lampshade
+
+`/designs/lampshade` provides profile presets and draggable diameters, a rippled shell or diamond lattice, mounting offset/orientation, a coarse-thread adapter and fit-test collar. Print setup provides guidance without saving profiles. This model uses a JavaScript/Manifold mesh runtime and STL exports; the existing Rust/CAD models retain STEP. See [the model documentation](models/lampshade/README.md) for dimensions, validation and physical-test limitations.
+
+Set `default_view = "solid"` or `default_view = "outline"` in a model catalogue to choose its initial preview style. If omitted, it defaults to Outline. This is presentation metadata and does not change model revisions or geometry.

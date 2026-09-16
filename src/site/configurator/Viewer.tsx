@@ -32,7 +32,7 @@ export function Viewer({
   visible,
   exploded,
   measurements,
-  setExploded, included, setVisible, setIncluded, exporting,
+  setExploded, included, setVisible, setIncluded, exporting, generating = false,
 }: {
   model: ModelDefinition;
   parts: PartMesh[];
@@ -44,12 +44,13 @@ export function Viewer({
   setVisible: (value: boolean[]) => void;
   setIncluded: (value: boolean[]) => void;
   exporting: boolean;
+  generating?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null),
     overlay = useRef<SVGSVGElement>(null),
     view = useRef<View | null>(null);
   const [error, setError] = useState(""),
-    [mode, setMode] = useState<Mode>("outline"),
+    [mode, setMode] = useState<Mode>(model.default_view ?? "outline"),
     [measurementPreference, setMeasurementPreference] = useState<
       boolean | null
     >(null),
@@ -73,7 +74,7 @@ export function Viewer({
     };
   }, [partsOpen]);
   const [transparencyPosition, setTransparencyPosition] = useState({ top: 0, left: 0 });
-  const dimensions = measurementPreference ?? mode !== "solid";
+  const dimensions = measurementPreference ?? true;
   useEffect(() => {
     const node = host.current!,
       svg = overlay.current!;
@@ -90,6 +91,7 @@ export function Viewer({
     node.append(renderer.domElement);
     renderer.domElement.setAttribute("aria-hidden", "true");
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(outlineStyle.background);
     const ortho = new THREE.OrthographicCamera(-150, 150, 100, -100, 0.1, 5000);
     ortho.up.set(0, 1, 0);
     const camera = ortho;
@@ -146,7 +148,7 @@ export function Viewer({
     let settings: Settings = {
       visible: [],
       exploded: false,
-      mode: "outline",
+      mode: model.default_view ?? "outline",
       dimensions: false,
       transparency: 35,
       angle: null,
@@ -192,14 +194,14 @@ export function Viewer({
           to: [b.x, a.y - gap, b.z],
         },
         {
-          label: "Height",
+          label: model.id === "lampshade" ? "Depth" : "Height",
           approximate: true,
           value: b.y - a.y,
           from: [b.x + gap, a.y, b.z],
           to: [b.x + gap, b.y, b.z],
         },
         {
-          label: "Depth",
+          label: model.id === "lampshade" ? "Height" : "Depth",
           approximate: true,
           value: b.z - a.z,
           from: [a.x - gap, a.y, a.z],
@@ -366,8 +368,6 @@ export function Viewer({
         explodeTransition = { start: now, from: explodeProgress, to: next.exploded ? 1 : 0 };
       }
       settings = next;
-      const dark = next.mode !== "solid";
-      scene.background = new THREE.Color(dark ? outlineStyle.background : "#e6ede6");
       controls.enableRotate = true;
       objects.forEach(
         ({ mesh, edge, hiddenEdge, silhouette, solid, flat }, i) => {
@@ -522,28 +522,12 @@ export function Viewer({
       },
     };
     view.current = api;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    function overPart(clientX: number, clientY: number) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.set((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2);
-      camera.updateMatrixWorld();
-      raycaster.setFromCamera(pointer, camera);
-      return objects.some(({ mesh }, index) => {
-        if (!settings.visible[index]) return false;
-        mesh.updateMatrixWorld();
-        return raycaster.intersectObject(mesh, false).length > 0;
-      });
-    }
-    const gateWheel = (event: WheelEvent) => {
-      if (!overPart(event.clientX, event.clientY)) event.stopImmediatePropagation();
-    };
-    renderer.domElement.addEventListener("wheel", gateWheel, true);
     const mobile = matchMedia("(max-width: 760px)");
     const viewer = node.closest<HTMLElement>(".viewer")!;
     const title = node.closest(".model-page")?.querySelector<HTMLElement>(".model-title");
     const stage = node.parentElement!;
-    const topGroups = Array.from(viewer.querySelectorAll<HTMLElement>(".view-modes, .orientation-controls, .viewer-tools"));
+    const toolbar = viewer.querySelector<HTMLElement>(".viewer-toolbar")!;
+    const topGroups = [toolbar];
     const regions = title ? [title, ...topGroups] : topGroups;
     let extension = -1;
     const projected = new THREE.Vector3();
@@ -554,6 +538,10 @@ export function Viewer({
         extension = nextExtension;
         viewer.style.setProperty("--canvas-extension", `${extension}px`);
       }
+      const toolbarHeight = toolbar.getBoundingClientRect().bottom - viewer.getBoundingClientRect().top;
+      const backdropHeight = `${Math.max(0, toolbarHeight)}px`;
+      if (viewer.style.getPropertyValue("--toolbar-backdrop-height") !== backdropHeight)
+        viewer.style.setProperty("--toolbar-backdrop-height", backdropHeight);
       const canvasRect = node.getBoundingClientRect();
       const boxes = data.flatMap((part, index) => {
         if (!settings.visible[index] || !objects[index]) return [];
@@ -627,7 +615,7 @@ export function Viewer({
         if (gridPlane === "side") { grid.rotation.set(0, 0, Math.PI / 2); grid.position.set(gridBounds.min.x - .5, midpoint.y, midpoint.z); radius.set(span.y, span.z); }
         gridMaterial.uniforms.radius.value.copy(radius.multiplyScalar(.85).addScalar(30));
       }
-      grid.visible = settings.mode !== "solid" && !gridBounds.isEmpty() && !transition;
+      grid.visible = !gridBounds.isEmpty() && !transition;
       const decorationAlpha = transition ? 0 : reduced.matches ? 1 : Math.min(1, (performance.now() - decorationFadeStart) / 140);
       gridMaterial.uniforms.opacity.value = decorationAlpha * (reduced.matches ? 1 : Math.min(1, (performance.now() - gridFadeStart) / 140));
       const alpha = reduced.matches
@@ -678,8 +666,8 @@ export function Viewer({
     return () => {
       view.current = null;
       resize.disconnect();
-      renderer.domElement.removeEventListener("wheel", gateWheel, true);
       viewer.style.removeProperty("--canvas-extension");
+      viewer.style.removeProperty("--toolbar-backdrop-height");
       regions.forEach(region => region.removeAttribute("data-model-under"));
       renderer.setAnimationLoop(null);
       controls.dispose();
@@ -718,6 +706,7 @@ export function Viewer({
       style={{ viewTransitionName: `model-${model.id}` }}
       aria-label="Interactive 3D preview"
     >
+      <div className="viewer-toolbar-backdrop" aria-hidden="true" />
       <div className="viewer-toolbar">
         <div className="view-modes" role="group" aria-label="Preview style">
           {(["outline", "solid"] as Mode[]).map((v) => (
@@ -805,12 +794,13 @@ export function Viewer({
         </div>
         <PartsPanel model={model} visible={visible} included={included} setVisible={setVisible} setIncluded={setIncluded} disabled={exporting} />
       </div>
-      <div className="viewer-stage">
+      <div className="viewer-stage" data-generating={generating || undefined} aria-busy={generating}>
         <div className={`viewer-loading-art${previewReady ? " is-ready" : ""}`} aria-hidden="true"><ModelArtwork model={model} /></div>
         <div
           ref={host}
           className="viewer-canvas"
-          tabIndex={0}
+          tabIndex={generating ? -1 : 0}
+          aria-hidden={generating || undefined}
           role="group"
           aria-label="3D model. Arrow keys rotate; Home resets the view."
           onKeyDown={(e) => {
@@ -846,12 +836,17 @@ export function Viewer({
           className="measurement-overlay"
           aria-label="Model dimensions"
         />
-        {!shown && (
+        {!generating && !shown && (
           <p className="viewer-empty">
             All parts are hidden. Use the eyes in the parts list to show them.
           </p>
         )}
-        {!parts.length && <p className="viewer-empty">Preparing your model…</p>}
+        {generating && (
+          <div className="viewer-generating" role="status" aria-live="polite">
+            <span className="viewer-spinner" aria-hidden="true" />
+            <span>Generating your model…</span>
+          </div>
+        )}
       </div>
       {error && (
         <p className="viewer-error" role="alert">

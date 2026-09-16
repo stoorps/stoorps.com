@@ -6,7 +6,7 @@ const image =
   process.env.CADRUM_BUILD_IMAGE ||
   "ghcr.io/lzpel/cross-wasm32-unknown-unknown@sha256:4dc88df287da141e67588ba80ebf1d14d5cb24f5b05302c57b11b2a1e9bed1df";
 const models = await generateModels();
-const jobs = models.map((m) => ({
+const jobs = models.filter(m => m.crate).map((m) => ({
   crate: m.crate,
   out: `src/generated/models/${m.catalog.id}`,
 }));

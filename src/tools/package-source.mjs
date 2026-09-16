@@ -6,7 +6,7 @@ async function sourceFiles(root) {
     const name = `${root}/${entry.name}`;
     if (entry.isDirectory() && entry.name !== "reference")
       files.push(...(await sourceFiles(name)));
-    else if (entry.isFile() && /\.(rs|toml)$/.test(name)) files.push(name);
+    else if (entry.isFile() && /\.(rs|toml|mjs|md)$/.test(name)) files.push(name);
   }
   return files;
 }

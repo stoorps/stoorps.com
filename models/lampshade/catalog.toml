@@ -1,0 +1,335 @@
+id = "lampshade"
+default_view = "solid"
+revision = 2
+runtime = "mesh"
+formats = ["stl"]
+title = "Curve lampshade"
+description = "Sculpt a rippled shell or an open diamond lattice."
+configuration_hint = "Shape the curve, choose a pattern, then adjust the fixture and print setup."
+overview = "An original parametric shade with reinforced rims and a removable coarse-thread adapter. Mount depth sets the overhang above the fixture."
+print_notes = "Print the adapter and fit-test collar first. STL dimensions are millimetres; place each part flat on the bed in your slicer. Fit-test mode replaces the shade with a short matching collar. Clearances are provisional. Use an LED bulb and verify clearance, temperature and sustained load before installation. Material selection is guidance, not a heat or load rating. Inspect supports and overhangs in your slicer."
+
+[[parameters]]
+key = "height"
+label = "Shade height"
+default = 180
+min = 80
+max = 280
+step = 1
+group = "Shape"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "bottom_diameter"
+label = "Bottom diameter"
+default = 190
+min = 100
+max = 290
+step = 1
+group = "Shape"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "middle_diameter"
+label = "Middle diameter"
+default = 170
+min = 100
+max = 290
+step = 1
+group = "Shape"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "top_diameter"
+label = "Top diameter"
+default = 120
+min = 100
+max = 290
+step = 1
+group = "Shape"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "curve"
+label = "Curve softness"
+default = 1
+min = 0
+max = 1
+step = 0.05
+group = "Shape"
+unit = ""
+help = "Blend straight sides into a smooth profile."
+advanced = false
+
+[[parameters]]
+key = "pattern"
+label = "Surface"
+default = 1
+min = 0
+max = 1
+step = 1
+group = "Pattern"
+unit = ""
+help = ""
+options = ["Rippled shell", "Diamond lattice"]
+advanced = false
+
+[[parameters]]
+key = "lobes"
+label = "Ripple count"
+default = 24
+min = 0
+max = 48
+step = 1
+group = "Pattern"
+unit = ""
+help = ""
+advanced = false
+
+[[parameters]]
+key = "ripple_depth"
+label = "Ripple depth"
+default = 2
+min = 0
+max = 6
+step = 0.1
+group = "Pattern"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "twist"
+label = "Twist"
+default = 25
+min = -90
+max = 90
+step = 1
+group = "Pattern"
+unit = "\u00b0"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "density"
+label = "Mesh density"
+default = 80
+min = 0
+max = 100
+step = 1
+group = "Pattern"
+unit = "%"
+help = "Higher density makes smaller diamonds. Spacing adapts to the shade size; thick strands limit how closely cells can be packed. Applies to the lattice only."
+advanced = false
+
+[[parameters]]
+key = "thickness"
+label = "Wall / strand thickness"
+default = 2
+min = 1.2
+max = 4
+step = 0.1
+group = "Pattern"
+unit = "mm"
+help = "Lattice strands use this width and radial depth; shell thickness is radial."
+advanced = false
+
+[[parameters]]
+key = "mount_depth"
+label = "Mount depth"
+default = 35
+min = 0
+max = 120
+step = 1
+group = "Mounting"
+unit = "mm"
+help = "Inset from the top for a pendant, or bottom for a lamp, to the adapter clamping face."
+advanced = false
+
+[[parameters]]
+key = "orientation"
+label = "Use"
+default = 0
+min = 0
+max = 1
+step = 1
+group = "Mounting"
+unit = ""
+help = ""
+options = ["Pendant", "Table / floor lamp"]
+advanced = false
+
+[[parameters]]
+key = "fixture_diameter"
+label = "Fixture diameter"
+default = 26.62
+min = 20
+max = 45
+step = 0.01
+group = "Adapter"
+unit = "mm"
+help = "Measured fixture diameter before adding clearance."
+advanced = false
+
+[[parameters]]
+key = "hole_clearance"
+label = "Hole clearance"
+default = 0.4
+min = 0
+max = 1
+step = 0.05
+group = "Adapter"
+unit = "mm"
+help = "Added across the diameter, not per side."
+advanced = false
+
+[[parameters]]
+key = "clamp_diameter"
+label = "Clamping area diameter"
+default = 40
+min = 34
+max = 54
+step = 1
+group = "Adapter"
+unit = "mm"
+help = "Keep larger than the fixture hole; coarse thread sits outside this area."
+advanced = false
+
+[[parameters]]
+key = "plate_thickness"
+label = "Clamping plate thickness"
+default = 3
+min = 2
+max = 5
+step = 0.1
+group = "Adapter"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "thread_clearance"
+label = "Thread clearance"
+default = 0.25
+min = 0.1
+max = 0.6
+step = 0.05
+group = "Adapter"
+unit = "mm"
+help = "Radial clearance between mating thread surfaces."
+advanced = false
+
+[[parameters]]
+key = "fit_test"
+label = "Output"
+default = 0
+min = 0
+max = 1
+step = 1
+group = "Adapter"
+unit = ""
+help = ""
+options = ["Complete shade + adapter", "Fit-test collar + adapter"]
+advanced = false
+
+[[parameters]]
+key = "build_x"
+label = "Build width"
+default = 305
+min = 100
+max = 500
+step = 1
+group = "Print setup"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "build_y"
+label = "Build depth"
+default = 305
+min = 100
+max = 500
+step = 1
+group = "Print setup"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "build_z"
+label = "Build height"
+default = 280
+min = 100
+max = 500
+step = 1
+group = "Print setup"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "nozzle"
+label = "Nozzle diameter"
+default = 0.4
+min = 0.2
+max = 1
+step = 0.05
+group = "Print setup"
+unit = "mm"
+help = ""
+advanced = false
+
+[[parameters]]
+key = "material"
+label = "Material"
+default = 1
+min = 0
+max = 5
+step = 1
+group = "Print setup"
+unit = ""
+help = ""
+options = ["PLA", "PLA-CF", "PETG", "PETG-CF", "ASA", "Other"]
+advanced = false
+
+[[parameters]]
+key = "extrusion_width"
+label = "Extrusion width"
+default = 0.45
+min = 0.2
+max = 1.2
+step = 0.05
+group = "Print setup"
+unit = "mm"
+help = "Use your slicer line width for thickness guidance."
+advanced = true
+
+[[parameters]]
+key = "layer_height"
+label = "Layer height"
+default = 0.2
+min = 0.1
+max = 0.5
+step = 0.05
+group = "Print setup"
+unit = "mm"
+help = ""
+advanced = true
+
+[[parts]]
+id = "shade"
+name = "Shade / fit-test collar"
+color = 0xc6b49a
+[[parts]]
+id = "adapter"
+name = "Fixture adapter"
+color = 0x548f7c

@@ -10,6 +10,7 @@ export function validateCatalog(value, directory) {
     "title",
     "description",
     "camera",
+    "default_view",
     "parameters",
     "parts",
     "configuration_hint",
@@ -17,6 +18,8 @@ export function validateCatalog(value, directory) {
     "overview",
     "print_notes",
     "source_url",
+    "runtime",
+    "formats",
   ];
   if (Object.keys(value).some((k) => !allowed.includes(k)))
     throw new Error(`${directory}: unknown catalogue field`);
@@ -41,16 +44,45 @@ export function validateCatalog(value, directory) {
     !["https:", "http:"].includes(new URL(value.source_url).protocol)
   )
     throw new Error(`${directory}: invalid source URL`);
+  if (value.runtime !== undefined && value.runtime !== "mesh")
+    throw new Error(`${directory}: invalid runtime`);
+  if (
+    value.formats !== undefined &&
+    (!Array.isArray(value.formats) ||
+      !value.formats.length ||
+      value.formats.some((f) => !["stl", "step"].includes(f)))
+  )
+    throw new Error(`${directory}: invalid formats`);
+  if (value.default_view !== undefined && !["solid", "outline"].includes(value.default_view))
+    throw new Error(`${directory}: invalid default view`);
   if (value.camera !== undefined) {
     const table = value.camera;
-    if (!table || typeof table !== "object" || Array.isArray(table) || Object.keys(table).some(key => !["desktop", "mobile"].includes(key)))
+    if (
+      !table ||
+      typeof table !== "object" ||
+      Array.isArray(table) ||
+      Object.keys(table).some((key) => !["desktop", "mobile"].includes(key))
+    )
       throw new Error(`${directory}: invalid camera table`);
     for (const preset of Object.values(table)) {
-      if (!preset || typeof preset !== "object" || Object.keys(preset).some(key => !["direction", "zoom", "pan"].includes(key)) ||
-          !Array.isArray(preset.direction) || preset.direction.length !== 3 || !preset.direction.every(Number.isFinite) ||
-          Math.hypot(...preset.direction) < 0.001 || Math.hypot(...preset.direction.slice(0, 2)) < 0.001 ||
-          !Number.isFinite(preset.zoom) || preset.zoom < 0.2 || preset.zoom > 10 ||
-          !Array.isArray(preset.pan) || preset.pan.length !== 2 || !preset.pan.every(n => Number.isFinite(n) && Math.abs(n) <= 1))
+      if (
+        !preset ||
+        typeof preset !== "object" ||
+        Object.keys(preset).some(
+          (key) => !["direction", "zoom", "pan"].includes(key),
+        ) ||
+        !Array.isArray(preset.direction) ||
+        preset.direction.length !== 3 ||
+        !preset.direction.every(Number.isFinite) ||
+        Math.hypot(...preset.direction) < 0.001 ||
+        Math.hypot(...preset.direction.slice(0, 2)) < 0.001 ||
+        !Number.isFinite(preset.zoom) ||
+        preset.zoom < 0.2 ||
+        preset.zoom > 10 ||
+        !Array.isArray(preset.pan) ||
+        preset.pan.length !== 2 ||
+        !preset.pan.every((n) => Number.isFinite(n) && Math.abs(n) <= 1)
+      )
         throw new Error(`${directory}: invalid camera preset`);
     }
   }
@@ -70,6 +102,14 @@ export function validateCatalog(value, directory) {
     for (const key of ["unit", "group", "help"])
       if (p[key] !== undefined && typeof p[key] !== "string")
         throw new Error(`${directory}: invalid parameter ${key}`);
+    if (
+      p.options !== undefined &&
+      (!Array.isArray(p.options) ||
+        p.options.length !== p.max - p.min + 1 ||
+        p.step !== 1 ||
+        p.options.some((o) => typeof o !== "string" || !o))
+    )
+      throw new Error(`${directory}: invalid options`);
     if (p.advanced !== undefined && typeof p.advanced !== "boolean")
       throw new Error(`${directory}: invalid advanced flag`);
     if (
@@ -86,6 +126,7 @@ export function validateCatalog(value, directory) {
             "group",
             "advanced",
             "help",
+            "options",
           ].includes(k),
       )
     )
@@ -134,6 +175,10 @@ export async function readModels(root = process.cwd()) {
         parse(await readFile(path.join(folder, "catalog.toml"), "utf8")),
         entry.name,
       );
+      if (catalog.runtime === "mesh") {
+        await readFile(path.join(folder, "model.mjs"), "utf8");
+        return { catalog, crate: null, folder };
+      }
       const manifest = parse(
         await readFile(path.join(folder, "Cargo.toml"), "utf8"),
       );

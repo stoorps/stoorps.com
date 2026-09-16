@@ -1,5 +1,6 @@
 [workspace]
 members = ["models/*", "src/engine", "src/tests/fixtures/*"]
+exclude = ["models/lampshade"]
 default-members = ["models/bilresa", "src/engine"]
 resolver = "2"
 

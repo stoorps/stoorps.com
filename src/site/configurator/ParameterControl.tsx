@@ -33,6 +33,27 @@ export function ParameterControl({
         ).toFixed(precision),
       ),
     );
+  if (p.options)
+    return (
+      <div className="parameter-control">
+        <div className="parameter-label">
+          <label htmlFor={id}>{p.label}</label>
+        </div>
+        <select
+          id={id}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(Number(e.target.value))}
+        >
+          {p.options.map((label, i) => (
+            <option key={i} value={p.min + i}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <p className="parameter-help">{p.help}</p>
+      </div>
+    );
   return (
     <div className="parameter-control">
       <div className="parameter-label">
@@ -91,7 +112,7 @@ export function ParameterControl({
       >
         {!valid
           ? `Use ${p.min}–${p.max}${p.unit ? ` ${p.unit}` : ""}, in steps of ${p.step}.`
-          : p.help || `${p.min}–${p.max} per side`}
+          : p.help || `${p.min}–${p.max}${p.unit ? ` ${p.unit}` : ""}`}
       </p>
     </div>
   );

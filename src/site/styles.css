@@ -1153,34 +1153,34 @@ p {
   stroke-width: 4px;
   stroke-linejoin: round;
 }
-:is(.viewer-blueprint, .viewer-outline) {
+.viewer {
   background: #173d35;
   color: #c3e3cc;
 }
-:is(.viewer-blueprint, .viewer-outline) .view-modes {
+.viewer .view-modes {
   background: #2c5146;
 }
-:is(.viewer-blueprint, .viewer-outline) .viewer-toolbar button,
-:is(.viewer-blueprint, .viewer-outline) .blueprint-angles button {
+.viewer .viewer-toolbar button,
+.viewer .blueprint-angles button {
   color: #c3e3cc;
 }
-:is(.viewer-blueprint, .viewer-outline) .view-modes button[aria-pressed="true"],
-:is(.viewer-blueprint, .viewer-outline)
+.viewer .view-modes button[aria-pressed="true"],
+.viewer
   .viewer-tools
   button[aria-pressed="true"],
 .blueprint-angles button[aria-pressed="true"] {
   background: #d2e3cd;
   color: #173d35;
 }
-:is(.viewer-blueprint, .viewer-outline) .measurement-overlay path {
+.viewer .measurement-overlay path {
   stroke: #c3e3cc;
 }
-:is(.viewer-blueprint, .viewer-outline) .measurement-overlay text {
+.viewer .measurement-overlay text {
   fill: #e1efd6;
   stroke: #173d35;
 }
-:is(.viewer-blueprint, .viewer-outline) .viewer-bottom,
-:is(.viewer-blueprint, .viewer-outline) .viewer-empty {
+.viewer .viewer-bottom,
+.viewer .viewer-empty {
   color: #a7cbb5;
 }
 .blueprint-angles {
@@ -1517,7 +1517,7 @@ body:has(.model-page) .site-footer { font-size: 12px; padding-top: 10px; padding
 .viewer-toolbar { display: flex; align-items: flex-start; flex-wrap: wrap; }
 .orientation-controls { display: flex; align-items: center; gap: 3px; }
 .orientation-controls button { background: transparent; color: #527562; font-size: 12px; padding: 10px; }
-.viewer-outline .orientation-controls button { color: #c3e3cc; }
+.viewer .orientation-controls button { color: #c3e3cc; }
 .orientation-controls button[aria-pressed="true"] { background: #d3e5ca; color: #173d35; }
 .viewer-tools { margin-left: auto; }
 .transparency-popover { position: fixed; inset: auto; margin: 0; width: 280px; max-width: calc(100vw - 32px); padding: 20px; border: 1px solid #c6d4c3; border-radius: 16px; background: #f6f6ed; color: #233c32; box-shadow: 0 12px 40px #102d3240; }
@@ -1641,10 +1641,8 @@ body:has(.model-page) .site-footer,
   .model-page .model-title[data-model-under] { background-color: rgb(23 61 53 / 60%); }
   .viewer .view-modes, .viewer .orientation-controls, .viewer .viewer-tools { z-index: 2; }
   .viewer .view-modes, .viewer .orientation-controls { position: relative; transition: background-color 220ms ease; }
-  .viewer-outline .orientation-controls { background: #173d35; border-radius: 7px; }
-  .viewer-solid .orientation-controls { background: #e6ede6; border-radius: 7px; }
-  .viewer-outline .view-modes[data-model-under], .viewer-outline .orientation-controls[data-model-under] { background-color: rgb(23 61 53 / 60%); }
-  .viewer-solid .view-modes[data-model-under], .viewer-solid .orientation-controls[data-model-under] { background-color: rgb(230 237 230 / 60%); }
+  .viewer .orientation-controls { background: #173d35; border-radius: 7px; }
+  .viewer .view-modes[data-model-under], .viewer .orientation-controls[data-model-under] { background-color: rgb(23 61 53 / 60%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .model-page .model-title, .viewer .view-modes, .viewer .orientation-controls { transition: none; }
@@ -1664,10 +1662,8 @@ body:has(.model-page) .site-footer,
     border-radius: 7px;
     transition: background-color 220ms ease;
   }
-  .viewer-outline .orientation-controls, .viewer-outline .viewer-tools { background: #173d35; }
-  .viewer-solid .orientation-controls, .viewer-solid .viewer-tools { background: #e6ede6; }
-  .viewer-outline [data-model-under] { background-color: rgb(23 61 53 / 60%); }
-  .viewer-solid [data-model-under] { background-color: rgb(230 237 230 / 60%); }
+  .viewer .orientation-controls, .viewer .viewer-tools { background: #173d35; }
+  .viewer [data-model-under] { background-color: rgb(23 61 53 / 60%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .viewer .view-modes, .viewer .orientation-controls, .viewer .viewer-tools { transition: none; }
@@ -1681,3 +1677,70 @@ body:has(.model-page) .site-footer,
 /* Match overscroll and Safari's sampled browser chrome to the current page. */
 html, body { background-color: #1e1e20; }
 html:has(.model-page), body:has(.model-page) { background-color: #173d35; }
+
+/* Lampshade profile and print guidance */
+.shade-profile { padding: 12px 0; }
+.shade-profile svg { display: block; width: 100%; height: 180px; color: var(--ink, #285b48); }
+.shade-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.shade-presets button { border: 1px solid #a4b6a9; border-radius: 6px; padding: 6px 12px; color: inherit; background: transparent; cursor: pointer; }
+.parameter-control select { width: 100%; padding: 8px; border: 1px solid #a4b6a9; border-radius: 6px; color: inherit; background: transparent; font: inherit; }
+.shade-guidance { border-top: 1px solid #a4b6a9; padding-top: 12px; font-size: .85rem; }
+
+/* Retain the camera and geometry in memory, but never show a stale model
+   while its replacement is being generated. */
+.viewer-stage[data-generating] .viewer-canvas,
+.viewer-stage[data-generating] .measurement-overlay,
+.viewer-stage[data-generating] .viewer-loading-art {
+  visibility: hidden;
+  pointer-events: none;
+}
+.viewer-generating {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #d4e2ca;
+  font-size: 14px;
+  z-index: 2;
+}
+.viewer-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #d4e2ca40;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: viewer-spin .8s linear infinite;
+}
+@keyframes viewer-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .viewer-spinner { animation: none; }
+}
+
+/* A continuous underlay across the top controls, including the gaps between
+   groups. It does not intercept orbit/zoom gestures or move the bottom tools. */
+.viewer-toolbar-backdrop {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--toolbar-backdrop-height, 0px);
+  z-index: 1;
+  pointer-events: none;
+  background-color: transparent;
+  transition: background-color 220ms ease;
+}
+.viewer:has(.viewer-toolbar[data-model-under]) .viewer-toolbar-backdrop {
+  background-color: rgb(23 61 53 / 60%);
+}
+.viewer .viewer-toolbar[data-model-under],
+.viewer .viewer-toolbar[data-model-under] .view-modes,
+.viewer .viewer-toolbar[data-model-under] .orientation-controls {
+  background-color: transparent;
+}
+@media (min-width: 761px) {
+  .viewer .viewer-toolbar[data-model-under] .viewer-tools { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewer-toolbar-backdrop { transition: none; }
+}

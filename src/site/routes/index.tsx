@@ -48,6 +48,12 @@ function Home() {
           </div>
         </Link>
       </section>
+      <section aria-label="Lampshade configurator">
+        <Link to="/designs/$modelId" params={{modelId:"lampshade"}} className="featured-model">
+          <div className="model-card-art"><ModelArtwork model={getModel("lampshade")} /></div>
+          <div className="model-card-copy"><span className="pill">Configurable · 3D printable</span><h3>Curve lampshade</h3><p>Shape a rippled shell or an open lattice, with a removable adapter for your fixture.</p><span className="text-action">Configure the shade ↗</span></div>
+        </Link>
+      </section>
       <section className="software-section" aria-labelledby="software-heading">
         <div className="section-heading">
           <h2 id="software-heading">A few things in code</h2>

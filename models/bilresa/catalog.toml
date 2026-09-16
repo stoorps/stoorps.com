@@ -1,4 +1,5 @@
 id = "bilresa"
+default_view = "outline"
 revision = 2
 title = "BILRESA switch cover (UK)"
 description = "A renter-friendly smart home upgrade."
