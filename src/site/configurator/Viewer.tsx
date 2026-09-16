@@ -322,6 +322,22 @@ export function Viewer({
     let decorationFadeStart = 0;
     let gridPlane: Angle = "face";
     let gridFadeStart = 0;
+    let explodeProgress = 0;
+    let explodeTransition: { start: number; from: number; to: number } | null = null;
+    function positionExplosion(now: number) {
+      if (explodeTransition) {
+        const t = reduced.matches ? 1 : Math.min(1, (now - explodeTransition.start) / 400);
+        const ease = t * t * (3 - 2 * t);
+        explodeProgress = THREE.MathUtils.lerp(explodeTransition.from, explodeTransition.to, ease);
+        if (t === 1) explodeTransition = null;
+      }
+      objects.forEach(({ mesh, edge, hiddenEdge, silhouette }, i) => {
+        mesh.position.set(0, i === 2 ? 30 * explodeProgress : 0, i === 1 ? 25 * explodeProgress : 0);
+        edge.position.copy(mesh.position);
+        hiddenEdge.position.copy(mesh.position);
+        silhouette.position.copy(mesh.position);
+      });
+    }
     let transition: {
       start: number; from: THREE.Quaternion; to: THREE.Quaternion;
       fromTarget: THREE.Vector3; toTarget: THREE.Vector3;
@@ -329,6 +345,12 @@ export function Viewer({
     } | null = null;
     function display(next: Settings) {
       const changedAngle = settings.angle !== next.angle;
+      if (settings.exploded !== next.exploded) {
+        const now = performance.now();
+        // Reverse from the current position, even between rendered frames.
+        positionExplosion(now);
+        explodeTransition = { start: now, from: explodeProgress, to: next.exploded ? 1 : 0 };
+      }
       settings = next;
       const dark = next.mode !== "solid";
       scene.background = new THREE.Color(dark ? outlineStyle.background : "#e6ede6");
@@ -340,19 +362,12 @@ export function Viewer({
           mesh.material = next.mode === "solid" ? solid : flat;
           flat.color.set(outlineStyle.background);
           edge.material.color.set(outlineStyle.line);
-          mesh.position.set(0, 0, 0);
-          if (next.exploded) {
-            if (i === 1) mesh.position.z = 25;
-            if (i === 2) mesh.position.y = 30;
-          }
-          edge.position.copy(mesh.position);
-          hiddenEdge.position.copy(mesh.position);
           hiddenEdge.visible = edge.visible;
-          silhouette.position.copy(mesh.position);
           silhouette.visible = edge.visible;
           silhouette.material.uniforms.color.value.copy(edge.material.color);
         },
       );
+      positionExplosion(performance.now());
       if (next.angle && changedAngle) {
         const from = ortho.quaternion.clone(), fromTarget = controls.target.clone(), fromZoom = ortho.zoom;
         fit();
@@ -507,6 +522,7 @@ export function Viewer({
     renderer.domElement.addEventListener("webglcontextlost", lost);
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     renderer.setAnimationLoop(() => {
+      positionExplosion(performance.now());
       controls.enabled = !transition;
       if (transition) {
         const t = reduced.matches ? 1 : Math.min(1, (performance.now() - transition.start) / 350);

@@ -6,7 +6,7 @@ description = "A renter-friendly smart home upgrade."
 configuration_hint = "Choose how many BILRESA remotes sit on each side of your wall switch."
 parameter_note = "An empty side keeps a 4 mm margin for rigidity."
 overview = "The main body holds your BILRESA remotes beside the wall switch. A removable blanking plate and cover top keep the original switches accessible."
-print_notes = "The generated geometry has been checked against the original design. Physical fit is not yet tested, and the 0.3 mm adhesive allowance still needs measuring. Check those dimensions before a full print."
+print_notes = "Measure your wall plate and adjust its width, height and depth before printing. Set the adhesive recess to suit the thickness of your mounting adhesive."
 source_url = "https://cad.onshape.com/documents/a8d7f806b021fde567015702/w/f3c1ffb1b3be092d2a2ce889/e/95dc2ef3acda41e95cefbb8f"
 
 [[parameters]]
@@ -133,7 +133,7 @@ step = 0.01
 unit = "mm"
 group = "Mounting"
 advanced = true
-help = "Recess depth for adhesive. The default still needs physical measurement."
+help = "Space for adhesive behind the magnetic plate."
 
 [[parameters]]
 key = "asm_wall_thickness"

@@ -1613,3 +1613,18 @@ body:has(.model-page) .site-footer,
 .about-page { align-content: start; }
 .about-back { grid-column: 1 / -1; justify-self: start; display: inline-flex; gap: 8px; align-items: center; margin-bottom: 32px; padding: 8px 0; color: var(--accent); font-size: 14px; }
 .about-back:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Mobile canvas reaches the viewport; its controls retain the card gutters. */
+@media (max-width: 760px) {
+  .viewer {
+    margin-inline: calc(-1 * var(--workspace-gutter));
+    border-radius: 0;
+  }
+  .viewer-toolbar { padding-inline: var(--workspace-gutter); }
+  .viewer-tools {
+    left: var(--workspace-gutter);
+    right: var(--workspace-gutter);
+    border-radius: 0 0 16px 16px;
+    overflow: hidden;
+  }
+}
