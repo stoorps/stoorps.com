@@ -2,12 +2,17 @@
 import { getModel } from "../../generated/catalog";
 import { loadModelModule } from "../../generated/model-loaders";
 import { validateParameters, geometryContract } from "../models/types";
+import {
+  solveMotion,
+  validateBattenSpacing,
+} from "../../../models/mini-rack-sideboard/motion.mjs";
 import type {
   Request,
   Response,
   ModelInstance,
   PartInstance,
   ModelModule,
+  Assembly,
 } from "./protocol";
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const modules = new Map<string, Promise<ModelModule>>();
@@ -65,7 +70,18 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
       const next = new module.Model(JSON.stringify(data.params));
       const nextParts: PartInstance[] = [];
       try {
-        for (let i = 0; i < model.parts.length; i++)
+        const metadata: Assembly | undefined = next.assembly_json
+          ? JSON.parse(next.assembly_json())
+          : undefined;
+        if (metadata) {
+          validateBattenSpacing(metadata);
+          metadata.motion = solveMotion(metadata);
+          if (!metadata.motion.valid)
+            metadata.warnings.unshift(
+              `Closed-door clearance is insufficient at ${metadata.motion.limit}. Adjust the geometry before fabrication.`,
+            );
+        }
+        for (let i = 0; i < (next.part_count?.() ?? model.parts.length); i++)
           nextParts.push(next.part(i));
         const meshes = nextParts.map((p, partIndex) => {
           const positions = p.positions();
@@ -85,6 +101,9 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
             bounds[axis + 3] = Math.max(bounds[axis + 3], positions[i]);
           }
           return {
+            explode: metadata?.parts[partIndex].explode,
+            pivot: metadata?.parts[partIndex].pivot,
+            hand: metadata?.parts[partIndex].hand,
             positions,
             rounded:
               model.id === "lampshade" &&
@@ -106,6 +125,7 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
         const message: Response = {
           id: data.id,
           result: {
+            assembly: metadata,
             parts: meshes,
             measurements: JSON.parse(next.measurements_json()),
             milliseconds: performance.now() - started,

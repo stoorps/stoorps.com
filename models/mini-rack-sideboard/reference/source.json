@@ -1,0 +1,45 @@
+{
+  "url": "https://cad.onshape.com/documents/fc5774ab553e18e1aa304c41/w/49cc550f28a881aef7c99042/e/318336473a11cc59144005c4",
+  "title": "Mini Rack Sideboard | Part Studio 1",
+  "observed": "2026-09-20",
+  "method": "Shared browser variable table and read-only FeatureScript feature code",
+  "units": "mm, degrees",
+  "defaults": {
+    "board_stock_thickness": 18,
+    "batten_stock_width": 20,
+    "batten_stock_depth": 30,
+    "num_door_rib_layers": 3,
+    "num_top_layers": 2,
+    "num_bottom_layers": 2,
+    "num_divider_layers": 2,
+    "num_shelf_layers": 1,
+    "num_leg_battens_x": 2,
+    "num_leg_battens_y": 2,
+    "leg_edge_inset_x": 200,
+    "leg_edge_inset_y": 160,
+    "leg_height": 60,
+    "leg_angle_lr": 20,
+    "o_width": 1300,
+    "o_depth": 600,
+    "o_height": 800,
+    "of_radius": 250,
+    "or_radius": 10,
+    "sd_batten_gap": 10,
+    "sd_width": 649,
+    "sd_depth": 408,
+    "i_shelf_height": 420,
+    "i_shelf_clearance": 5
+  },
+  "derived": {
+    "batten_length": 620,
+    "battens_per_door": 31,
+    "curve_pattern_pitch": 30
+  },
+  "notes": [
+    "Two open composite door parts each contain 31 battens and two ribs.",
+    "Count expression uses outer radius; actual curve pattern follows the half-batten-depth inset path.",
+    "Feet not modeled in source.",
+    "Reference is a live workspace URL, not an immutable Onshape version.",
+    "No exact STEP comparison completed; see README for reconstruction differences."
+  ]
+}

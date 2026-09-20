@@ -15,15 +15,17 @@
     "test:site": "node src/tools/generate-models.mjs && tsx --test src/tests/site.test.ts src/tests/catalog.test.mjs src/tests/previews.test.mjs src/tests/lampshade-controls.test.ts",
     "preview:static": "python3 -m http.server 4174 --bind 127.0.0.1 --directory dist/client",
     "dev:tests": "vite --config src/tools/vite.tests.config.ts",
-    "test:all": "npm run test:site && npm test && npm run test:bilresa && npm run test:lampshade",
+    "test:all": "npm run test:site && npm test && npm run test:bilresa && npm run test:lampshade && npm run test:cabinet",
     "previews:generate": "node src/tools/generate-previews.mjs",
-    "test:lampshade": "node --test src/tests/lampshade.test.mjs"
+    "test:lampshade": "node --test src/tests/lampshade.test.mjs",
+    "test:cabinet": "node --test src/tests/cabinet.test.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.36",
     "@tanstack/react-start": "1.168.54",
     "fflate": "0.8.3",
     "manifold-3d": "3.5.3",
+    "pdf-lib": "^1.17.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "three": "0.183.2"

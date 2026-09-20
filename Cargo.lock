@@ -503,6 +503,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "model-mini-rack-sideboard"
+version = "0.1.0"
+dependencies = [
+ "cadrum",
+ "model-engine",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "num-modular"
 version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

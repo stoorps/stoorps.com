@@ -13,6 +13,7 @@ type Angle = "face" | "top" | "side";
 type Settings = {
   visible: boolean[];
   exploded: boolean;
+  doorAngle: number;
   mode: Mode;
   dimensions: boolean;
   transparency: number;
@@ -43,6 +44,7 @@ export function Viewer({
   setIncluded,
   exporting,
   generating = false,
+  motion,
 }: {
   model: ModelDefinition;
   parts: PartMesh[];
@@ -56,7 +58,12 @@ export function Viewer({
   setIncluded: (value: boolean[]) => void;
   exporting: boolean;
   generating?: boolean;
+  motion?: { angle: number; limit: string; valid: boolean };
 }) {
+  const [doorOpen, setDoorOpen] = useState(false);
+  useEffect(() => {
+    setDoorOpen(false);
+  }, [parts]);
   const host = useRef<HTMLDivElement>(null),
     overlay = useRef<SVGSVGElement>(null),
     view = useRef<View | null>(null);
@@ -201,6 +208,7 @@ export function Viewer({
     let settings: Settings = {
       visible: [],
       exploded: false,
+      doorAngle: 0,
       mode: model.default_view ?? "outline",
       dimensions: false,
       transparency: 35,
@@ -247,14 +255,14 @@ export function Viewer({
           to: [b.x, a.y - gap, b.z],
         },
         {
-          label: model.id === "lampshade" ? "Depth" : "Height",
+          label: model.id !== "bilresa" ? "Depth" : "Height",
           approximate: true,
           value: b.y - a.y,
           from: [b.x + gap, a.y, b.z],
           to: [b.x + gap, b.y, b.z],
         },
         {
-          label: model.id === "lampshade" ? "Height" : "Depth",
+          label: model.id !== "bilresa" ? "Height" : "Depth",
           approximate: true,
           value: b.z - a.z,
           from: [a.x - gap, a.y, a.z],
@@ -322,6 +330,7 @@ export function Viewer({
       ortho.bottom = -extent;
       ortho.updateProjectionMatrix();
     }
+    let cameraDistance = 1000;
     let fitting = false;
     let defaultFraming = true;
     const leaveDefaultFraming = () => {
@@ -335,22 +344,41 @@ export function Viewer({
         box.getSize(size);
         box.getCenter(center);
       }
+      cameraDistance = Math.max(1000, size.length() * 2);
+      ortho.far = cameraDistance * 4;
+      controls.maxDistance = cameraDistance * 3;
       controls.target.copy(center);
       resizeCamera();
       if (settings.angle) {
         ortho.zoom = 1;
         const direction =
           settings.angle === "face"
-            ? new THREE.Vector3(0, 0, 1)
+            ? model.id === "mini-rack-sideboard"
+              ? new THREE.Vector3(0, -1, 0)
+              : new THREE.Vector3(0, 0, 1)
             : settings.angle === "top"
-              ? new THREE.Vector3(0, 1, 0)
+              ? model.id === "mini-rack-sideboard"
+                ? new THREE.Vector3(0, 0, 1)
+                : new THREE.Vector3(0, 1, 0)
               : new THREE.Vector3(1, 0, 0);
         ortho.up.set(
           0,
-          settings.angle === "face" ? 1 : 0,
-          settings.angle === "face" ? 0 : 1,
+          (
+            model.id === "mini-rack-sideboard"
+              ? settings.angle === "top"
+              : settings.angle === "face"
+          )
+            ? 1
+            : 0,
+          (
+            model.id === "mini-rack-sideboard"
+              ? settings.angle === "top"
+              : settings.angle === "face"
+          )
+            ? 0
+            : 1,
         );
-        ortho.position.copy(center).addScaledVector(direction, 1000);
+        ortho.position.copy(center).addScaledVector(direction, cameraDistance);
         ortho.updateProjectionMatrix();
       } else {
         const preset =
@@ -364,7 +392,7 @@ export function Viewer({
           .add(
             new THREE.Vector3(...(preset?.direction ?? outlineStyle.direction))
               .normalize()
-              .multiplyScalar(1000),
+              .multiplyScalar(cameraDistance),
           );
         ortho.lookAt(center);
         const pan = preset?.pan ?? [0, 0];
@@ -409,9 +437,23 @@ export function Viewer({
     let gridPlane: Angle = "face";
     let gridFadeStart = 0;
     let explodeProgress = 0;
+    let doorProgress = 0;
+    let doorTransition: { start: number; from: number; to: number } | null =
+      null;
     let explodeTransition: { start: number; from: number; to: number } | null =
       null;
     function positionExplosion(now: number) {
+      if (doorTransition) {
+        const t = reduced.matches
+          ? 1
+          : Math.min(1, (now - doorTransition.start) / 650);
+        doorProgress = THREE.MathUtils.lerp(
+          doorTransition.from,
+          doorTransition.to,
+          t * t * (3 - 2 * t),
+        );
+        if (t === 1) doorTransition = null;
+      }
       if (explodeTransition) {
         const t = reduced.matches
           ? 1
@@ -425,14 +467,27 @@ export function Viewer({
         if (t === 1) explodeTransition = null;
       }
       objects.forEach(({ mesh, edge, hiddenEdge, silhouette }, i) => {
+        const part = data[i];
+        const theta = (-(part.hand || 0) * doorProgress * Math.PI) / 180;
+        const pivot = part.pivot || [0, 0];
+        const offset = part.explode || [0, i === 2 ? 30 : 0, i === 1 ? 25 : 0];
+        mesh.rotation.z = theta;
         mesh.position.set(
-          0,
-          i === 2 ? 30 * explodeProgress : 0,
-          i === 1 ? 25 * explodeProgress : 0,
+          pivot[0] -
+            Math.cos(theta) * pivot[0] +
+            Math.sin(theta) * pivot[1] +
+            offset[0] * explodeProgress,
+          pivot[1] -
+            Math.sin(theta) * pivot[0] -
+            Math.cos(theta) * pivot[1] +
+            offset[1] * explodeProgress,
+          offset[2] * explodeProgress,
         );
-        edge.position.copy(mesh.position);
-        hiddenEdge.position.copy(mesh.position);
-        silhouette.position.copy(mesh.position);
+        for (const outline of [edge, hiddenEdge, silhouette]) {
+          outline.position.copy(mesh.position);
+          outline.rotation.copy(mesh.rotation);
+        }
+        mesh.updateMatrixWorld();
       });
     }
     let transition: {
@@ -446,6 +501,11 @@ export function Viewer({
     } | null = null;
     function display(next: Settings) {
       const changedAngle = settings.angle !== next.angle;
+      if (settings.doorAngle !== next.doorAngle) {
+        const now = performance.now();
+        positionExplosion(now);
+        doorTransition = { start: now, from: doorProgress, to: next.doorAngle };
+      }
       if (settings.exploded !== next.exploded) {
         const now = performance.now();
         // Reverse from the current position, even between rendered frames.
@@ -508,9 +568,13 @@ export function Viewer({
         .normalize();
       const expected =
         settings.angle === "face"
-          ? new THREE.Vector3(0, 0, 1)
+          ? model.id === "mini-rack-sideboard"
+            ? new THREE.Vector3(0, -1, 0)
+            : new THREE.Vector3(0, 0, 1)
           : settings.angle === "top"
-            ? new THREE.Vector3(0, 1, 0)
+            ? model.id === "mini-rack-sideboard"
+              ? new THREE.Vector3(0, 0, 1)
+              : new THREE.Vector3(0, 1, 0)
             : new THREE.Vector3(1, 0, 0);
       if (direction.dot(expected) < 0.99999) {
         settings.angle = null;
@@ -700,7 +764,9 @@ export function Viewer({
             part.bounds[corner & 2 ? 4 : 1],
             part.bounds[corner & 4 ? 5 : 2],
           );
-          projected.add(objects[index].mesh.position).project(camera);
+          projected
+            .applyMatrix4(objects[index].mesh.matrixWorld)
+            .project(camera);
           if (
             !Number.isFinite(projected.x + projected.y + projected.z) ||
             Math.abs(projected.z) > 1
@@ -772,7 +838,7 @@ export function Viewer({
           ease,
         );
         ortho.position
-          .set(0, 0, 1000)
+          .set(0, 0, cameraDistance)
           .applyQuaternion(ortho.quaternion)
           .add(controls.target);
         ortho.up.set(0, 1, 0).applyQuaternion(ortho.quaternion);
@@ -908,12 +974,23 @@ export function Viewer({
     view.current?.display({
       visible,
       exploded,
+      doorAngle: doorOpen && !exploded && !generating ? motion?.angle || 0 : 0,
       mode,
       dimensions,
       angle,
       transparency,
     });
-  }, [visible, exploded, mode, dimensions, angle, transparency]);
+  }, [
+    visible,
+    exploded,
+    mode,
+    dimensions,
+    angle,
+    transparency,
+    doorOpen,
+    motion?.angle,
+    generating,
+  ]);
   useEffect(() => {
     if (parts.length)
       view.current?.update(
@@ -973,6 +1050,20 @@ export function Viewer({
         </div>
 
         <div className="viewer-tools">
+          {motion && (
+            <button
+              aria-label={doorOpen ? "Close doors" : "Open doors"}
+              aria-pressed={doorOpen}
+              disabled={generating || !motion.valid || motion.angle <= 0}
+              title={`${motion.angle.toFixed(1)}° — ${motion.limit}`}
+              onClick={() => {
+                setExploded(false);
+                setDoorOpen(!doorOpen);
+              }}
+            >
+              <span>{doorOpen ? "Close" : "Open"}</span>
+            </button>
+          )}
           <button
             className="measurements-button"
             aria-label="Measurements"
@@ -993,7 +1084,10 @@ export function Viewer({
               aria-label="Explode"
               title="Explode"
               aria-pressed={exploded}
-              onClick={() => setExploded(!exploded)}
+              onClick={() => {
+                setDoorOpen(false);
+                setExploded(!exploded);
+              }}
             >
               <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m12 2 2.2 6 6-3-2.4 6 4.2 3-6.4 1 .8 7-4.4-4.8L7 22l.5-7-6-1L6 10 3 5l6 3Z" />

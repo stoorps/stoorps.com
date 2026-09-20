@@ -24,17 +24,20 @@ for (const { catalog } of await readModels()) {
     ),
   );
   try {
-    const parts = catalog.parts.map((_, index) => {
-      const part = model.part(index);
-      try {
-        return {
-          positions: part.positions().slice(),
-          indices: part.indices().slice(),
-        };
-      } finally {
-        part.free();
-      }
-    });
+    const parts = Array.from(
+      { length: model.part_count?.() ?? catalog.parts.length },
+      (_, index) => {
+        const part = model.part(index);
+        try {
+          return {
+            positions: part.positions().slice(),
+            indices: part.indices().slice(),
+          };
+        } finally {
+          part.free();
+        }
+      },
+    );
     const svg = renderPreview(parts, catalog.title);
     const file = `${catalog.id}.svg`;
     await writeFile(`src/generated/previews/${file}`, svg);

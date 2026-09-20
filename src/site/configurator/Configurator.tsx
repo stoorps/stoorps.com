@@ -6,7 +6,7 @@ import {
   geometryKey as shadeGeometryKey,
 } from "../../../models/lampshade/surface.mjs";
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { ModelDefinition, Parameters } from "../models/types";
 import { defaults, validateParameters } from "../models/types";
@@ -27,7 +27,10 @@ function download(bytes: Uint8Array, name: string) {
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
+  link.hidden = true;
+  document.body.append(link);
   link.click();
+  link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 export function Configurator({ model }: { model: ModelDefinition }) {
@@ -269,6 +272,20 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       try {
         const next = await engine.current!.build(model, params);
         if (cancelled) return;
+        if (next.assembly) {
+          const oldParts = result?.assembly?.parts || model.parts;
+          const byId = new Map(oldParts.map((p, i) => [p.id, i]));
+          setVisible((previous) =>
+            next.assembly!.parts.map(
+              (p) => previous[byId.get(p.id) ?? -1] ?? true,
+            ),
+          );
+          setIncluded((previous) =>
+            next.assembly!.parts.map(
+              (p) => previous[byId.get(p.id) ?? -1] ?? true,
+            ),
+          );
+        }
         setResult(next);
         setBuiltKey(geometryKey);
         setMessage("Your parts are ready.");
@@ -332,8 +349,9 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         const { zipSync, strToU8 } = await import("fflate");
         const files: Record<string, Uint8Array> = {};
         for (const i of selection)
-          files[`${stem}-${model.parts[i].id}.stl`] =
-            await engine.current!.export(i, "stl");
+          files[
+            `${stem}-${(result?.assembly?.parts || model.parts)[i].id}.stl`
+          ] = await engine.current!.export(i, "stl");
         files["configuration.json"] = strToU8(
           JSON.stringify(
             {
@@ -341,7 +359,9 @@ export function Configurator({ model }: { model: ModelDefinition }) {
               model: model.id,
               modelRevision: model.revision,
               parameters: params,
-              parts: selection.map((i) => model.parts[i].id),
+              parts: selection.map(
+                (i) => (result?.assembly?.parts || model.parts)[i].id,
+              ),
             },
             null,
             2,
@@ -362,7 +382,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         if (active.current)
           download(
             bytes,
-            `${stem}-${selection.length > 1 ? "assembly" : model.parts[selection[0]].id}.${format}`,
+            `${stem}-${selection.length > 1 ? "assembly" : (result?.assembly?.parts || model.parts)[selection[0]].id}.${format}`,
           );
       }
     } catch (e) {
@@ -371,6 +391,11 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       if (active.current) setExporting(false);
     }
   }
+  const viewerModel = useMemo(
+    () =>
+      result?.assembly ? { ...model, parts: result.assembly.parts } : model,
+    [model, result?.assembly],
+  );
   const selectedParts = included.flatMap((v, i) => (v ? [i] : []));
   const displayed = params || defaults(model);
   function changeParameters(next: Parameters) {
@@ -397,13 +422,51 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         >
           V{model.revision}
         </span>
-        <button
-          disabled={!ready || exporting || !selectedParts.length}
-          aria-label={`Download STLs (${selectedParts.length})`}
-          onClick={() => exportFiles(selectedParts.length > 1 ? "zip" : "stl")}
-        >
-          <span aria-hidden="true">↓</span> STLs ({selectedParts.length})
-        </button>
+        {result?.assembly && (
+          <button
+            disabled={
+              !ready ||
+              exporting ||
+              !selectedParts.length ||
+              !result.assembly.motion?.valid
+            }
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const { fabricationPack } =
+                  await import("../../../models/mini-rack-sideboard/fabrication.mjs");
+                const bytes = await fabricationPack(
+                  result.assembly,
+                  params!,
+                  model.revision,
+                  selectedParts,
+                );
+                if (active.current)
+                  download(
+                    bytes,
+                    `${model.id}-r${model.revision}-fabrication.zip`,
+                  );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            ↓ Fabrication pack
+          </button>
+        )}
+        {(!model.formats || model.formats.includes("stl")) && (
+          <button
+            disabled={!ready || exporting || !selectedParts.length}
+            aria-label={`Download STLs (${selectedParts.length})`}
+            onClick={() =>
+              exportFiles(selectedParts.length > 1 ? "zip" : "stl")
+            }
+          >
+            <span aria-hidden="true">↓</span> STLs ({selectedParts.length})
+          </button>
+        )}
         {(!model.formats || model.formats.includes("step")) && (
           <button
             className="secondary"
@@ -445,10 +508,9 @@ export function Configurator({ model }: { model: ModelDefinition }) {
             : "Select at least one part to download."}
         </p>
         <p>
-          {model.formats?.length === 1
-            ? "This design exports STL meshes. "
-            : "STEP keeps assembled positions. "}
-          A single STL downloads directly; multiple STLs download as a ZIP.
+          {model.id === "mini-rack-sideboard"
+            ? "The fabrication ZIP contains a cut list, hardware schedule, full-size PDF/SVG profiles, DXF outlines and assembly guide. Hardware machining is provisional. STEP keeps assembled positions."
+            : "A single STL downloads directly; multiple STLs download as a ZIP. STEP keeps assembled positions when supported."}{" "}
           Dimensions are in millimetres.
         </p>
         <button
@@ -569,6 +631,32 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                 {model.configuration_hint ||
                   "Adjust the parameters to suit your setup."}
               </p>
+            )}
+            {result?.assembly && (
+              <div className="cabinet-readouts" aria-live="polite">
+                <p>
+                  <strong>
+                    {String(result.assembly.metrics.battenCountPerDoor)} battens
+                    per door
+                  </strong>
+                  <br />
+                  {Number(result.assembly.metrics.battenLength).toFixed(1)} mm
+                  long · actual gap{" "}
+                  {Number(result.assembly.metrics.actualGap).toFixed(1)} mm
+                </p>
+                <p>
+                  Opening:{" "}
+                  <strong>{result.assembly.motion?.angle.toFixed(1)}°</strong> ·{" "}
+                  {result.assembly.motion?.limit}
+                </p>
+                {!ready && <p>Updating these measurements…</p>}
+                {!result.assembly.motion?.valid && (
+                  <p role="alert">
+                    Closed-door clearance is insufficient. Adjust the clearance
+                    or hinge position.
+                  </p>
+                )}
+              </div>
             )}
             {linkError && (
               <div className="error-box" role="alert">
@@ -752,7 +840,11 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                 aria-controls={`${card}-content`}
                 onClick={() => toggleCard(card)}
               >
-                {card === "about" ? "About the design" : "Before you print"}
+                {card === "about"
+                  ? "About the design"
+                  : model.id === "mini-rack-sideboard"
+                    ? "Before you build"
+                    : "Before you print"}
                 <span aria-hidden="true">{openCard === card ? "⌃" : "⌄"}</span>
               </button>
             </h2>
@@ -776,7 +868,8 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       </aside>
       <Viewer
         key={`${model.id}-${displayed.fit_test ?? 0}`}
-        model={model}
+        model={viewerModel}
+        motion={result?.assembly?.motion}
         bulbEnvelope={
           model.id === "lampshade" &&
           displayed.bulb_overlay &&

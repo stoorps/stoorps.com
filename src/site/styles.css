@@ -1475,6 +1475,13 @@ body:has(.model-page) .site-footer { font-size: 12px; padding-top: 10px; padding
 }
 
 /* Downloads follow the page header on desktop and precede the cards on phones. */
+@media (min-width: 761px) {
+  /* Before hydration moves downloads into the header, keep that temporary
+     child out of the workspace grid so the cards never occupy the viewer column. */
+  .configurator > .download-actions { display: none; }
+  .configurator > .controls-stack { grid-column: 1; grid-row: 1; }
+  .configurator > .viewer { grid-column: 2; grid-row: 1; }
+}
 .model-title { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 #model-downloads { flex: 0 0 330px; }
 .download-actions { min-width: 0; color: #c8d8cb; }

@@ -1,0 +1,19 @@
+[package]
+name = "model-mini-rack-sideboard"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+path = "model.rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+model-engine.workspace = true
+cadrum.workspace = true
+wasm-bindgen.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[build-dependencies]
+serde_yaml_ng = "=0.10.0"
+serde_json.workspace = true
