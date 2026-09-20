@@ -5,6 +5,7 @@ export const Route = createFileRoute("/")({ component: Home });
 function Home() {
   const featured = getModel("bilresa");
   const lampshade = getModel("lampshade");
+  const sideboard = getModel("mini-rack-sideboard");
   return (
     <main id="main" className="home content">
       <section className="home-intro">
@@ -94,6 +95,25 @@ function Home() {
                 adapter for your fixture.
               </p>
               <span className="text-action">Configure the shade ↗</span>
+            </div>
+          </Link>
+        </section>
+      )}
+      {sideboard.enabled !== false && (
+        <section aria-label="Mini Rack Sideboard configurator">
+          <Link
+            to="/designs/$modelId"
+            params={{ modelId: sideboard.id }}
+            className="featured-model"
+          >
+            <div className="model-card-art">
+              <ModelArtwork model={sideboard} />
+            </div>
+            <div className="model-card-copy">
+              <span className="pill">Configurable · Woodworking</span>
+              <h3>{sideboard.title}</h3>
+              <p>{sideboard.description}</p>
+              <span className="text-action">Configure the sideboard ↗</span>
             </div>
           </Link>
         </section>
