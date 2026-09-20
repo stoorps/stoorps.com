@@ -12,7 +12,7 @@
     "test:bilresa": "node src/tests/bilresa-wasm.mjs",
     "pretypecheck": "npm run models:generate",
     "typecheck": "tsc --noEmit",
-    "test:site": "node src/tools/generate-models.mjs && tsx --test src/tests/site.test.ts src/tests/catalog.test.mjs src/tests/previews.test.mjs",
+    "test:site": "node src/tools/generate-models.mjs && tsx --test src/tests/site.test.ts src/tests/catalog.test.mjs src/tests/previews.test.mjs src/tests/lampshade-controls.test.ts",
     "preview:static": "python3 -m http.server 4174 --bind 127.0.0.1 --directory dist/client",
     "dev:tests": "vite --config src/tools/vite.tests.config.ts",
     "test:all": "npm run test:site && npm test && npm run test:bilresa && npm run test:lampshade",
@@ -38,6 +38,7 @@
     "smol-toml": "1.8.0",
     "tsx": "4.23.13",
     "typescript": "7.0.2",
-    "vite": "7.3.6"
+    "vite": "7.3.6",
+    "yaml": "2.9.1"
   }
 }

@@ -6,16 +6,16 @@ Use TanStack Start + React + TypeScript. The immediate release is a personal sit
 
 ## Boundaries
 
-- `models/<id>/`: independently buildable model crate, `model.rs`, `catalog.toml`, optional reference files and examples. BILRESA is the first model.
+- `models/<id>/`: independently buildable model crate, `model.rs`, `catalog.yml`, optional reference files and examples. BILRESA is the first model.
 - `src/engine/`: reusable Part, mesh/STEP/STL exports, STEP reimport and WASM runtime initialisation. It has no model-specific dependencies.
 - `src/site/`: personal pages, generic model page, React configurator, typed worker client and URL codec.
-- `src/tools/`: discovers model folders, validates TOML, generates catalogue/loaders and compiles each crate independently. Static model routes are derived from discovery.
+- `src/tools/`: discovers model folders, validates YAML, generates catalogue/loaders and compiles each crate independently. Static model routes are derived from discovery.
 - `src/generated/`: ignored build outputs, including one WASM module per model. The worker loads only the requested model, compares its compiled geometry contract against the site's metadata, then constructs it through a common ABI.
 - `src/tests/`: all regression tests; the box is a separate fixture crate and is not shipped by the site.
 
 The shared engine is shared Rust source, not a separately downloaded kernel: each model WASM currently statically links OCCT. This gives independent model builds but repeats the kernel across different model downloads. Only the selected model is fetched.
 
-Source metadata is owned by each model. BILRESA's build script derives exposed numeric defaults/limits and its exported catalogue from TOML. Units, groups, help text and Advanced flags are presentation metadata; fixed mechanical details remain Rust code. The generated TypeScript catalogue is an index, not a second hand-maintained source of truth.
+Source metadata is owned by each model. BILRESA's build script derives exposed numeric defaults/limits and its exported catalogue from YAML. Units, groups, help text and Advanced flags are presentation metadata; fixed mechanical details remain Rust code. The generated TypeScript catalogue is an index, not a second hand-maintained source of truth.
 
 The old root HTML demos, `web/` UI and central hand-written catalogue were deleted. Standard package/configuration files remain at root for their tools. Public assets live under `src/site/public`; reference meshes are scoped to BILRESA.
 
@@ -49,7 +49,7 @@ Add creator identity/ownership and a publishable model manifest first. Then choo
 
 ## Viewer and parameters
 
-The generic parameter controls support decimal inputs, steppers and sliders, grouped by model TOML. Basic controls are always visible; Advanced settings are collapsible. Numeric limits and increments are validated in both TypeScript and Rust; model-specific relational checks run in Rust.
+The generic parameter controls support decimal inputs, steppers and sliders, grouped by model YAML. Basic controls are always visible; Advanced settings are collapsible. Numeric limits and increments are validated in both TypeScript and Rust; model-specific relational checks run in Rust.
 
 The viewer owns Solid, Outline and Blueprint presentation. It preserves camera position during regeneration and fades in the new mesh over 200 ms (disabled for reduced motion). Outline uses thresholded tessellation edges and an expanded back-face silhouette, with opaque background-coloured faces for occlusion; this is not exact CAD hidden-line removal or a technical drawing export. Blueprint uses orthographic front/top/side cameras. Switching back restores the previous 3D camera.
 

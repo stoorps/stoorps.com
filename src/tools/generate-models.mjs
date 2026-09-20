@@ -10,7 +10,7 @@ export async function generateModels() {
   await mkdir("src/generated", { recursive: true });
   await writeChanged(
     "src/generated/catalog.ts",
-    `// Generated from models/*/catalog.toml. Do not edit.\nimport type { ModelDefinition } from '../site/models/types';\nexport const models: readonly ModelDefinition[] = ${JSON.stringify(
+    `// Generated from models/*/catalog.yml. Do not edit.\nimport type { ModelDefinition } from '../site/models/types';\nexport const models: readonly ModelDefinition[] = ${JSON.stringify(
       entries.map((e) => e.catalog),
       null,
       2,
@@ -30,7 +30,7 @@ export async function generateModels() {
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await generateModels();
-  console.log("Generated catalogue and model loaders from TOML.");
+  console.log("Generated catalogue and model loaders from YAML.");
 }
 export function modelCatalogPlugin() {
   return {
@@ -39,12 +39,15 @@ export function modelCatalogPlugin() {
       await generateModels();
     },
     configureServer(server) {
-      server.watcher.add("models/**/catalog.toml");
+      server.watcher.add([
+        "models/**/catalog.yml",
+        "models/**/catalog/**/*.yml",
+      ]);
       server.watcher.on("all", async (event, file) => {
         if (
           !file
             .replaceAll("\\", "/")
-            .match(/models\/[^/]+\/(catalog\.toml|Cargo\.toml)$/)
+            .match(/models\/[^/]+\/(.*\.ya?ml|Cargo\.toml)$/)
         )
           return;
         try {

@@ -1,0 +1,17 @@
+group_name: Cell layout
+parameters:
+  - share_id: 74
+    key: density_mode
+    label: Control by
+    default: 0
+    min: 0
+    max: 2
+    step: 1
+
+  - share_id: 75
+    key: cell_pitch
+    label: Target cell width
+    default: 0
+    min: 0
+    max: 32
+    step: 0.01

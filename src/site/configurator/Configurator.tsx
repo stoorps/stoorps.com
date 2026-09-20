@@ -1,3 +1,10 @@
+import { strandPlan } from "../../../models/lampshade/waves.mjs";
+import { LampshadeReadouts } from "./LampshadeReadouts";
+import { CellDensityControl } from "./CellDensityControl";
+import {
+  bulbClearance,
+  geometryKey as shadeGeometryKey,
+} from "../../../models/lampshade/surface.mjs";
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
@@ -5,9 +12,11 @@ import type { ModelDefinition, Parameters } from "../models/types";
 import { defaults, validateParameters } from "../models/types";
 import { configurationUrl, parametersFromHash } from "./share";
 import { GeometryEngine } from "./engine";
-import { ParameterGroup } from "./ParameterGroup";
+import { SettingsTabs } from "./SettingsTabs";
 import { ParameterControl } from "./ParameterControl";
-import { LampshadeProfile, LampshadeGuidance } from "./LampshadeControls";
+import { LampshadeProfile } from "./LampshadeControls";
+import { maxRippleDepth } from "../../../models/lampshade/cells.mjs";
+import { StrandEditor } from "./StrandEditor";
 import { CellEditor } from "./CellEditor";
 import { Viewer } from "./Viewer";
 import type { BuildResult } from "./protocol";
@@ -204,6 +213,8 @@ export function Configurator({ model }: { model: ModelDefinition }) {
   const engine = useRef<GeometryEngine | null>(null);
   const active = useRef(true);
   const key = params ? JSON.stringify(params) : "";
+  const geometryKey =
+    params && model.id === "lampshade" ? shadeGeometryKey(params) : key;
   let validation = "";
   if (params) {
     try {
@@ -213,7 +224,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
     }
   }
   const ready =
-    !!result && key === builtKey && !validation && !linkError && !error;
+    !!result && geometryKey === builtKey && !validation && !linkError && !error;
   useEffect(() => {
     function readLink() {
       try {
@@ -259,7 +270,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
         const next = await engine.current!.build(model, params);
         if (cancelled) return;
         setResult(next);
-        setBuiltKey(key);
+        setBuiltKey(geometryKey);
         setMessage("Your parts are ready.");
       } catch (e) {
         if (!cancelled) {
@@ -272,7 +283,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [key, validation, linkError, restart, model]);
+  }, [geometryKey, validation, linkError, restart, model]);
   // A configuration is shareable even while its geometry is building or invalid.
   useEffect(() => {
     if (!params || validation || linkError) return;
@@ -362,6 +373,21 @@ export function Configurator({ model }: { model: ModelDefinition }) {
   }
   const selectedParts = included.flatMap((v, i) => (v ? [i] : []));
   const displayed = params || defaults(model);
+  function changeParameters(next: Parameters) {
+    if (model.id === "lampshade" && next.pattern === 2) {
+      const plan = strandPlan(next);
+      if (!plan.error)
+        next = {
+          ...next,
+          wave_merge: Math.max(
+            plan.minMerge!,
+            Math.min(plan.maxMerge!, next.wave_merge),
+          ),
+        };
+    }
+    setParams(next);
+  }
+
   const downloadActions = (
     <div className="download-actions">
       <div className="export-buttons">
@@ -536,10 +562,14 @@ export function Configurator({ model }: { model: ModelDefinition }) {
             className="setup-scroll"
             hidden={openCard !== "setup"}
           >
-            <p className="setup-hint">
-              {model.configuration_hint ||
-                "Adjust the parameters to suit your setup."}
-            </p>
+            {model.id === "lampshade" ? (
+              <LampshadeReadouts params={displayed} />
+            ) : (
+              <p className="setup-hint">
+                {model.configuration_hint ||
+                  "Adjust the parameters to suit your setup."}
+              </p>
+            )}
             {linkError && (
               <div className="error-box" role="alert">
                 <p>{linkError}</p>
@@ -550,33 +580,46 @@ export function Configurator({ model }: { model: ModelDefinition }) {
             )}
             <fieldset disabled={exporting || !!linkError || !params}>
               <legend className="sr-only">Design settings</legend>
-              {[
-                ...new Set(
-                  model.parameters.map((p) => p.group || "Parameters"),
-                ),
-              ]
-                .filter((group) => group !== "Cell editor")
-                .flatMap((group) =>
-                  model.id === "lampshade" &&
-                  group === "Pattern" &&
-                  displayed.pattern === 1
-                    ? [group, "Cell shape"]
-                    : [group],
-                )
-                .map((group) => (
-                  <ParameterGroup
-                    key={group}
-                    name={group}
-                    defaultOpen={
-                      group === "Layout" ||
-                      (model.id === "lampshade" && group === "Shape")
-                    }
-                  >
+              <SettingsTabs
+                groups={[
+                  ...new Set(
+                    model.parameters.map((p) => p.group || "Parameters"),
+                  ),
+                ]
+                  .filter(
+                    (group) =>
+                      !["Cell editor", "Wave editor", "Strands"].includes(
+                        group,
+                      ),
+                  )
+                  .flatMap((group) =>
+                    model.id === "lampshade" &&
+                    group === "Pattern" &&
+                    displayed.pattern !== 0
+                      ? [
+                          group,
+                          displayed.pattern === 2 ? "Strands" : "Cell shape",
+                        ]
+                      : [group],
+                  )
+                  .filter((group) => group !== "Cell layout")}
+              >
+                {(group) => (
+                  <div className="settings-tab-content">
                     {model.id === "lampshade" && group === "Shape" && (
                       <LampshadeProfile
                         params={displayed}
                         onChange={(next) => {
-                          setParams(next);
+                          changeParameters(next);
+                          setCopyStatus("");
+                        }}
+                      />
+                    )}
+                    {group === "Strands" && (
+                      <StrandEditor
+                        params={displayed}
+                        onChange={(next) => {
+                          changeParameters(next);
                           setCopyStatus("");
                         }}
                       />
@@ -585,7 +628,7 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                       <CellEditor
                         params={displayed}
                         onChange={(next) => {
-                          setParams(next);
+                          changeParameters(next);
                           setCopyStatus("");
                         }}
                       />
@@ -601,7 +644,11 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                                 ? ["cell_scale"]
                                 : []),
                             ].includes(p.key)
-                          : (p.group || "Parameters") === group &&
+                          : (p.key === "thickness" &&
+                            model.id === "lampshade" &&
+                            displayed.pattern === 2
+                              ? group === "Strands"
+                              : (p.group || "Parameters") === group) &&
                             !(
                               model.id === "lampshade" &&
                               [
@@ -612,26 +659,71 @@ export function Configurator({ model }: { model: ModelDefinition }) {
                               ].includes(p.key)
                             ),
                       )
-                      .map((p) => (
-                        <ParameterControl
-                          key={p.key}
-                          definition={p}
-                          value={displayed[p.key]}
-                          onChange={(value) => {
-                            setParams({ ...displayed, [p.key]: value });
-                            setCopyStatus("");
-                          }}
-                        />
-                      ))}
-                  </ParameterGroup>
-                ))}
+                      .filter(
+                        (p) =>
+                          !["density_mode", "cell_pitch"].includes(p.key) &&
+                          !(
+                            model.id === "lampshade" &&
+                            displayed.pattern !== 1 &&
+                            p.key === "density"
+                          ),
+                      )
+                      .map((p) =>
+                        model.id === "lampshade" && p.key === "density" ? (
+                          <CellDensityControl
+                            key={p.key}
+                            params={displayed}
+                            onChange={(next) => {
+                              changeParameters(next);
+                              setCopyStatus("");
+                            }}
+                          />
+                        ) : (
+                          <ParameterControl
+                            key={p.key}
+                            definition={
+                              model.id === "lampshade" &&
+                              p.key === "ripple_depth"
+                                ? {
+                                    ...p,
+                                    max: maxRippleDepth(displayed),
+                                    help: `Maximum ${maxRippleDepth(displayed)} mm for this profile, wall and mounting collar.`,
+                                  }
+                                : model.id === "lampshade" &&
+                                    displayed.pattern === 2 &&
+                                    p.key === "thickness"
+                                  ? {
+                                      ...p,
+                                      label: "Strand diameter",
+                                      help: "Diameter of the circular strand cross-section.",
+                                    }
+                                  : p.key === "wave_merge"
+                                    ? {
+                                        ...p,
+                                        min:
+                                          strandPlan(displayed).minMerge ?? 1,
+                                        max: Math.max(
+                                          strandPlan(displayed).minMerge ?? 1,
+                                          strandPlan(displayed).maxMerge ?? 100,
+                                        ),
+                                      }
+                                    : p
+                            }
+                            value={displayed[p.key]}
+                            onChange={(value) => {
+                              changeParameters({
+                                ...displayed,
+                                [p.key]: value,
+                              });
+                              setCopyStatus("");
+                            }}
+                          />
+                        ),
+                      )}
+                  </div>
+                )}
+              </SettingsTabs>
             </fieldset>
-            {model.id === "lampshade" && (
-              <LampshadeGuidance
-                params={displayed}
-                result={ready ? result : null}
-              />
-            )}
             <span className="sr-only" role="status">
               {copyStatus}
             </span>
@@ -685,6 +777,24 @@ export function Configurator({ model }: { model: ModelDefinition }) {
       <Viewer
         key={`${model.id}-${displayed.fit_test ?? 0}`}
         model={model}
+        bulbEnvelope={
+          model.id === "lampshade" &&
+          displayed.bulb_overlay &&
+          !displayed.fit_test
+            ? (() => {
+                const b = bulbClearance(displayed);
+                return b.available && b.diameter > 0
+                  ? {
+                      radius: b.diameter / 2,
+                      length: displayed.bulb_length,
+                      z: displayed.orientation
+                        ? displayed.height - (b.bottom + b.top) / 2
+                        : (b.bottom + b.top) / 2,
+                    }
+                  : undefined;
+              })()
+            : undefined
+        }
         parts={result?.parts || []}
         visible={visible}
         measurements={result?.measurements || []}

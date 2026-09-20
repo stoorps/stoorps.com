@@ -11,6 +11,9 @@ use std::{
 };
 use wasm_bindgen::prelude::*;
 mod cells;
+mod iso;
+mod strands;
+mod surface;
 include!(concat!(env!("OUT_DIR"), "/catalog.rs"));
 pub type Params = HashMap<String, f64>;
 pub type Result<T> = std::result::Result<T, String>;
@@ -53,6 +56,16 @@ pub fn validate(p: &Params) -> Result<()> {
                 d["label"].as_str().unwrap().to_lowercase()
             ));
         }
+    }
+    let minimum_radius = p["bottom_diameter"]
+        .min(p["middle_diameter"])
+        .min(p["top_diameter"])
+        / 2.;
+    let reserve =
+        (2. * p["thickness"] + 1.3).max(p["clamp_diameter"] / 2. + 9. + p["thickness"] / 2.);
+    let max_ripple = (((minimum_radius - reserve + 1e-9) * 10.).floor() / 10.).max(0.);
+    if p["ripple_depth"] > max_ripple + 1e-9 {
+        return Err(format!("Ripple depth must be at most {max_ripple:.1} mm for this profile, wall and mounting collar."));
     }
     if p["fixture_diameter"] + p["hole_clearance"] > p["clamp_diameter"] - 4. {
         return Err(
@@ -200,7 +213,9 @@ pub fn build(p: &Params) -> Result<Vec<Part>> {
     let w = p["thickness"];
     let n = 192usize.max(p["lobes"] as usize * 12);
     let mut pieces = vec![];
-    if p["pattern"] == 0. || (p["cell_cut_inside"] == 0. && p["cell_cut_outside"] == 0.) {
+    if p["pattern"] == 2. {
+        pieces.push(strands::build(p)?);
+    } else if p["pattern"] == 0. || (p["cell_cut_inside"] == 0. && p["cell_cut_outside"] == 0.) {
         pieces.push(annulus(
             0.,
             h,
@@ -215,6 +230,7 @@ pub fn build(p: &Params) -> Result<Vec<Part>> {
         let (v, f) = cells::connected(p)?;
         pieces.push(raw(&v, &f));
     }
+    let wall = pieces.pop().expect("shade wall");
     // Reinforcement grows inward from the wall centreline, leaving the visible
     // skin to the shade mesh. Keep the former band thickness for the joint.
     let mount_segments = n.max(p["lobes"] as usize * 48);
@@ -253,7 +269,7 @@ pub fn build(p: &Params) -> Result<Vec<Part>> {
         pieces.push(spoke.intersection(&envelope));
     }
     Ok(vec![
-        Part::pack(&union(&pieces), p, p["orientation"] != 0.)?,
+        Part::pack(&wall.union(&union(&pieces)), p, p["orientation"] != 0.)?,
         Part::pack(
             &adapter.translate(Vec3::new(0., 0., zm)),
             p,
@@ -310,37 +326,68 @@ pub struct Part {
     p: Params,
     flip: bool,
 }
-fn signed_volume(mesh: &MeshGL) -> f64 {
-    let v = |i: u32| {
-        let k = i as usize * mesh.num_prop as usize;
-        Vec3::new(
-            mesh.vert_properties[k] as f64,
-            mesh.vert_properties[k + 1] as f64,
-            mesh.vert_properties[k + 2] as f64,
-        )
-    };
-    mesh.tri_verts
-        .chunks_exact(3)
-        .map(|t| dot(v(t[0]), cross(v(t[1]), v(t[2]))) / 6.)
-        .sum()
-}
 impl Part {
     fn pack(s: &Manifold, p: &Params, flip: bool) -> Result<Self> {
         if s.status() != Error::NoError || s.is_empty() {
             return Err("This combination could not form a printable solid. Reduce pattern density or ripple depth.".into());
         }
-        let mut material: Vec<_> = s
-            .decompose()
-            .into_iter()
-            .filter(|c| signed_volume(&c.get_mesh_gl(-1)) > 0.)
-            .collect();
-        if material.len() != 1 {
-            return Err(if p["cell_cut_outside"]!=0.{"With outside cut away, neighbouring shapes must overlap with solid material. Increase cell size or thickness, adjust the nodes or row offset, or keep the outside."}else{"This configuration leaves disconnected material. Increase strand thickness or reduce twist."}.into());
-        }
-        let s = material.pop().unwrap();
+        // Check connected components directly in the exported mesh. Kernel
+        // decomposition copies every component and can exhaust WASM memory on
+        // numerical fragments left by many tube intersections.
         let m = s.get_mesh_gl(-1);
+        let mut parent: Vec<usize> = (0..m.vert_properties.len() / m.num_prop as usize).collect();
+        fn root(parent: &mut [usize], mut i: usize) -> usize {
+            while parent[i] != i {
+                parent[i] = parent[parent[i]];
+                i = parent[i];
+            }
+            i
+        }
+        for t in m.tri_verts.chunks_exact(3) {
+            let a = root(&mut parent, t[0] as usize);
+            for &b in &t[1..] {
+                let b = root(&mut parent, b as usize);
+                parent[b] = a;
+            }
+        }
+        let mut volumes = HashMap::<usize, f64>::new();
+        let point = |i: u32| {
+            let j = i as usize * m.num_prop as usize;
+            Vec3::new(
+                m.vert_properties[j] as f64,
+                m.vert_properties[j + 1] as f64,
+                m.vert_properties[j + 2] as f64,
+            )
+        };
+        for t in m.tri_verts.chunks_exact(3) {
+            let component = root(&mut parent, t[0] as usize);
+            *volumes.entry(component).or_default() +=
+                dot(point(t[0]), cross(point(t[1]), point(t[2]))) / 6.;
+        }
+        let material: Vec<_> = volumes.iter().filter(|(_, v)| **v > 1e-6).collect();
+        if material.len() != 1 {
+            return Err(if p["pattern"]==2. {"The strand layers do not form a connected shade. Increase layer merge or strand diameter, or adjust the wave shape."} else if p["cell_cut_outside"]!=0. {"With outside cut away, neighbouring shapes must overlap with solid material. Increase cell size or thickness, adjust the nodes or row offset, or keep the outside."} else {"This configuration leaves disconnected material. Increase strand thickness or reduce twist."}.into());
+        }
+        let component = *material[0].0;
+        let volume = *material[0].1;
+        let faces: Vec<u32> = m
+            .tri_verts
+            .chunks_exact(3)
+            .filter(|t| root(&mut parent, t[0] as usize) == component)
+            .flatten()
+            .copied()
+            .collect();
         let mut vertices = vec![];
-        for q in m.vert_properties.chunks_exact(m.num_prop as usize) {
+        let mut remap = vec![0u32; parent.len()];
+        for (i, q) in m
+            .vert_properties
+            .chunks_exact(m.num_prop as usize)
+            .enumerate()
+        {
+            if root(&mut parent, i) != component {
+                continue;
+            }
+            remap[i] = (vertices.len() / 3) as u32;
             vertices.extend([
                 q[0],
                 q[1] * if flip { -1. } else { 1. },
@@ -353,8 +400,8 @@ impl Part {
         }
         Ok(Self {
             vertices,
-            triangles: m.tri_verts,
-            v: s.volume(),
+            triangles: faces.iter().map(|i| remap[*i as usize]).collect(),
+            v: volume,
             p: p.clone(),
             flip,
         })
@@ -411,6 +458,9 @@ impl Part {
     pub fn surface_normals(&self) -> Vec<f32> {
         let p = &self.p;
         let mut out = vec![0.; self.vertices.len()];
+        if p["pattern"] == 2. {
+            return out;
+        }
         let tw = p["twist"] * PI / 180. / p["height"];
         for (i, q) in self.vertices.chunks_exact(3).enumerate() {
             let x = q[0] as f64;

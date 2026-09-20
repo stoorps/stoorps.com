@@ -1,3 +1,16 @@
+import { surfacePlan } from "./surface.mjs";
+// Reserve two wall thicknesses plus the reinforcing band's extra 1.3 mm,
+// or the mounting collar's clearance, whichever requires more room.
+export function maxRippleDepth(p) {
+  const radius =
+    Math.min(p.bottom_diameter, p.middle_diameter, p.top_diameter) / 2;
+  const reserve = Math.max(
+    2 * p.thickness + 1.3,
+    p.clamp_diameter / 2 + 9 + p.thickness / 2,
+  );
+  return Math.max(0, Math.floor((radius - reserve + 1e-9) * 10) / 10);
+}
+
 export function latticeLayout(p) {
   // Use physical spacing instead of counts, so larger shades get more cells.
   // Keep open space between the strands even at the densest setting.
@@ -73,11 +86,12 @@ export function opening(p) {
   const min = [0, 1].map((k) => Math.min(...rotated.map((q) => q[k])));
   const max = [0, 1].map((k) => Math.max(...rotated.map((q) => q[k])));
   const center = min.map((v, k) => (v + max[k]) / 2);
-  const scale = Math.max(max[0] - min[0], max[1] - min[1]) / 2;
-  if (scale < 1e-9) throw new Error("Separate neighbouring cell nodes.");
+  const scale = min.map((v, k) => (max[k] - v) / 2);
+  if (scale.some((s) => s < 1e-9))
+    throw new Error("Separate neighbouring cell nodes.");
   return rotated.map(([x, y]) => [
-    (x - center[0]) / scale,
-    (y - center[1]) / scale,
+    (x - center[0]) / scale[0],
+    (y - center[1]) / scale[1],
   ]);
 }
 export function validateOpening(p) {
@@ -470,13 +484,8 @@ export function connectedCells(p, layout, radius) {
 // Physical repeat spacing for the contour/strand modes. The shape may extend
 // beyond a repeat boundary; overlap is deliberate and fused by the generator.
 export function strandPlan(p, layout = latticeLayout(p)) {
-  const r =
-    Math.min(p.bottom_diameter, p.middle_diameter, p.top_diameter) / 2 -
-    p.ripple_depth;
-  const cols = Math.max(8, Math.round((2 * Math.PI * r) / layout.spacing));
-  const rows = Math.max(3, Math.round(layout.rows / p.cell_aspect));
-  const width = (2 * Math.PI * r) / cols,
-    height = p.height / rows;
+  const plan = surfacePlan(p);
+  const { cols, rows, width, cellHeight: height } = plan;
   return {
     cols,
     rows,

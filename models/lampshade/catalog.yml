@@ -1,0 +1,42 @@
+# Model catalogue. Sharing IDs are permanent.
+id: lampshade
+enabled: false
+share_id: 2
+default_view: solid
+revision: 6
+backend: manifold
+formats:
+  - stl
+title: Curve lampshade
+description: Sculpt a rippled shell or a lattice with editable cell openings.
+configuration_hint: Shape the curve, choose a pattern, then adjust the fixture and print setup.
+overview: An original parametric shade with reinforced rims and a removable coarse-thread adapter.
+  Mount depth sets the overhang above the fixture.
+print_notes: Print the adapter and fit-test collar first. STL dimensions are millimetres; place each
+  part flat on the bed in your slicer. Fit-test mode replaces the shade with a short matching
+  collar. Clearances are provisional. Use an LED bulb and verify clearance, temperature and
+  sustained load before installation. Material selection is guidance, not a heat or load rating.
+  Inspect supports and overhangs in your slicer. Start with strand thickness of at least 1.2 mm or
+  three extrusion widths, whichever is larger; this is guidance, not a printable limit. Check that
+  each part fits your build volume, allowing 5 mm brim space on each side. Check layer height
+  against nozzle diameter (normally no more than 75%) and extrusion width against your slicer
+  recommendations. For fibre-filled filament, follow the filament manufacturer’s nozzle guidance.
+  Verify the configured fixture-hole and thread clearances with the fit-test pair.
+parameter_groups:
+  - $ref: catalog/shape.yml
+  - $ref: catalog/pattern.yml
+  - $ref: catalog/mounting.yml
+  - $ref: catalog/adapter.yml
+  - $ref: catalog/print-setup.yml
+  - $ref: catalog/cell-editor.yml
+  - $ref: catalog/cell-layout.yml
+  - $ref: catalog/bulb-clearance.yml
+  - $ref: catalog/wave-editor.yml
+  - $ref: catalog/strands.yml
+parts:
+  - id: shade
+    name: Shade / fit-test collar
+    color: 13022362
+  - id: adapter
+    name: Fixture adapter
+    color: 5541756

@@ -6,7 +6,7 @@ async function sourceFiles(root) {
     const name = `${root}/${entry.name}`;
     if (entry.isDirectory() && entry.name !== "reference")
       files.push(...(await sourceFiles(name)));
-    else if (entry.isFile() && /\.(rs|toml|mjs|md)$/.test(name)) files.push(name);
+    else if (entry.isFile() && /\.(rs|toml|ya?ml|mjs|md)$/.test(name)) files.push(name);
   }
   return files;
 }
@@ -18,6 +18,8 @@ const files = [
   "src/tools/build-wasm.mjs",
   "src/tools/generate-models.mjs",
   "src/tools/model-catalog.mjs",
+  "src/tools/catalog-yaml.mjs",
+  "src/tools/catalog-build.rs",
   ...(await sourceFiles("models")),
   ...(await sourceFiles("src/engine")),
   ...(await sourceFiles("src/tests/fixtures")),

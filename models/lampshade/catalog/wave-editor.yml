@@ -1,0 +1,236 @@
+group_name: Wave editor
+parameters:
+  - share_id: 81
+    key: wave_peaks
+    label: Peaks per revolution
+    default: 12
+    min: 3
+    max: 48
+    step: 1
+
+  - share_id: 83
+    key: wave_spacing
+    label: Layer spacing
+    default: 7
+    min: 1
+    max: 30
+    step: 0.5
+    unit: mm
+
+  - share_id: 84
+    key: wave_offset
+    label: Alternating layer offset
+    default: 0.5
+    min: 0
+    max: 1
+    step: 0.05
+
+  - share_id: 85
+    key: wave_nodes
+    label: Wave points
+    default: 4
+    min: 3
+    max: 8
+    step: 1
+
+  - share_id: 86
+    key: wave_0_x
+    label: Point X
+    default: 0
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 87
+    key: wave_0_y
+    label: Point Y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 88
+    key: wave_0_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 89
+    key: wave_1_x
+    label: Point X
+    default: 0.25
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 90
+    key: wave_1_y
+    label: Point Y
+    default: 0.5
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 91
+    key: wave_1_slope
+    label: Tangent slope
+    default: 3
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 92
+    key: wave_2_x
+    label: Point X
+    default: 0.5
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 93
+    key: wave_2_y
+    label: Point Y
+    default: 1
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 94
+    key: wave_2_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 95
+    key: wave_3_x
+    label: Point X
+    default: 0.75
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 96
+    key: wave_3_y
+    label: Point Y
+    default: 0.5
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 97
+    key: wave_3_slope
+    label: Tangent slope
+    default: -3
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 98
+    key: wave_4_x
+    label: Point X
+    default: 0.9
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 99
+    key: wave_4_y
+    label: Point Y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 100
+    key: wave_4_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 101
+    key: wave_5_x
+    label: Point X
+    default: 0.9
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 102
+    key: wave_5_y
+    label: Point Y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 103
+    key: wave_5_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 104
+    key: wave_6_x
+    label: Point X
+    default: 0.9
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 105
+    key: wave_6_y
+    label: Point Y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 106
+    key: wave_6_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 107
+    key: wave_7_x
+    label: Point X
+    default: 0.9
+    min: 0
+    max: 0.98
+    step: 0.01
+
+  - share_id: 108
+    key: wave_7_y
+    label: Point Y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.01
+
+  - share_id: 109
+    key: wave_7_slope
+    label: Tangent slope
+    default: 0
+    min: -12
+    max: 12
+    step: 0.1
+
+  - share_id: 112
+    key: wave_arch
+    label: Wave arch construction
+    default: 1
+    min: 0
+    max: 2
+    step: 1
+    help: 0 preserves periodic tangents; 1 is an exact half-sine; 2 is an edited arch with mirrored end
+      tangents.

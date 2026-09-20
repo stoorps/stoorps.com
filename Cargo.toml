@@ -18,3 +18,11 @@ model-engine = { path = "src/engine" }
 opt-level = "s"
 lto = true
 codegen-units = 1
+
+# Boolean-heavy mesh generation benefits from speed optimisation rather than
+# the workspace's size-oriented default. CAD crates retain their own settings.
+[profile.release.package.manifold-rust]
+opt-level = 3
+
+[profile.release.package.model-lampshade]
+opt-level = 3

@@ -3,9 +3,11 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import { modelCatalogPlugin } from "./src/tools/generate-models.mjs";
 import { readModels } from "./src/tools/model-catalog.mjs";
-const modelPages = (await readModels()).map(({ catalog }) => ({
-  path: `/designs/${catalog.id}`,
-}));
+const modelPages = (await readModels())
+  .filter(({ catalog }) => catalog.enabled !== false)
+  .map(({ catalog }) => ({
+    path: `/designs/${catalog.id}`,
+  }));
 const base = process.env.SITE_BASE_PATH || "/";
 if (!base.startsWith("/") || !base.endsWith("/") || base.includes(".."))
   throw new Error("SITE_BASE_PATH must start and end with /");

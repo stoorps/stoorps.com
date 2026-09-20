@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
+import { creasedNormals } from "./creased-normals.mjs";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ModelDefinition } from "../models/types";
 import { applySurfaceNormals } from "./surface-normals.mjs";
@@ -18,7 +18,9 @@ type Settings = {
   transparency: number;
   angle: Angle | null;
 };
+type BulbEnvelope = { radius: number; length: number; z: number };
 type View = {
+  envelope: (value?: BulbEnvelope) => void;
   update: (
     parts: PartMesh[],
     measurements: Measurement[],
@@ -34,13 +36,20 @@ export function Viewer({
   visible,
   exploded,
   measurements,
-  setExploded, included, setVisible, setIncluded, exporting, generating = false,
+  bulbEnvelope,
+  setExploded,
+  included,
+  setVisible,
+  setIncluded,
+  exporting,
+  generating = false,
 }: {
   model: ModelDefinition;
   parts: PartMesh[];
   visible: boolean[];
   exploded: boolean;
   measurements: Measurement[];
+  bulbEnvelope?: BulbEnvelope;
   setExploded: (value: boolean) => void;
   included: boolean[];
   setVisible: (value: boolean[]) => void;
@@ -64,7 +73,11 @@ export function Viewer({
   const [partsPosition, setPartsPosition] = useState({ top: 0, left: 0 });
   function positionParts() {
     const rect = partsButton.current?.getBoundingClientRect();
-    if (rect) setPartsPosition({ top: rect.bottom + 8, left: Math.max(16, Math.min(rect.right - 320, window.innerWidth - 336)) });
+    if (rect)
+      setPartsPosition({
+        top: rect.bottom + 8,
+        left: Math.max(16, Math.min(rect.right - 320, window.innerWidth - 336)),
+      });
   }
   useEffect(() => {
     if (!partsOpen) return;
@@ -75,7 +88,10 @@ export function Viewer({
       window.removeEventListener("scroll", positionParts, true);
     };
   }, [partsOpen]);
-  const [transparencyPosition, setTransparencyPosition] = useState({ top: 0, left: 0 });
+  const [transparencyPosition, setTransparencyPosition] = useState({
+    top: 0,
+    left: 0,
+  });
   const dimensions = measurementPreference ?? true;
   useEffect(() => {
     const node = host.current!,
@@ -93,6 +109,38 @@ export function Viewer({
     node.append(renderer.domElement);
     renderer.domElement.setAttribute("aria-hidden", "true");
     const scene = new THREE.Scene();
+    let bulb:
+      THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial> | undefined;
+    function envelope(value?: BulbEnvelope) {
+      if (bulb) {
+        scene.remove(bulb);
+        bulb.geometry.dispose();
+        bulb.material.dispose();
+        bulb = undefined;
+      }
+      if (!value) return;
+      bulb = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+          value.radius,
+          value.radius,
+          value.length,
+          48,
+          1,
+          true,
+        ),
+        new THREE.MeshBasicMaterial({
+          color: 0xe5af55,
+          transparent: true,
+          opacity: 0.3,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+          wireframe: true,
+        }),
+      );
+      bulb.rotation.x = Math.PI / 2;
+      bulb.position.z = value.z;
+      scene.add(bulb);
+    }
     scene.background = new THREE.Color(outlineStyle.background);
     const ortho = new THREE.OrthographicCamera(-150, 150, 100, -100, 0.1, 5000);
     ortho.up.set(0, 1, 0);
@@ -114,7 +162,10 @@ export function Viewer({
       transparent: true,
       depthWrite: false,
       toneMapped: false,
-      uniforms: { radius: { value: new THREE.Vector2(180, 110) }, opacity: { value: 1 } },
+      uniforms: {
+        radius: { value: new THREE.Vector2(180, 110) },
+        opacity: { value: 1 },
+      },
       vertexShader: `varying vec3 gridColor; varying vec2 gridPoint;
         void main(){gridColor=color;gridPoint=position.xz;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
       fragmentShader: `uniform float opacity; uniform vec2 radius; varying vec3 gridColor; varying vec2 gridPoint;
@@ -136,10 +187,10 @@ export function Viewer({
       solid: THREE.MeshStandardMaterial;
       flat: THREE.MeshBasicMaterial;
       hiddenEdge: THREE.LineSegments<
-        THREE.EdgesGeometry,
+        THREE.BufferGeometry,
         THREE.LineBasicMaterial
       >;
-      edge: THREE.LineSegments<THREE.EdgesGeometry, THREE.LineBasicMaterial>;
+      edge: THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>;
     }[] = [];
     let data: PartMesh[] = [],
       modelMeasures: Measurement[] = [],
@@ -273,7 +324,9 @@ export function Viewer({
     }
     let fitting = false;
     let defaultFraming = true;
-    const leaveDefaultFraming = () => { defaultFraming = false; };
+    const leaveDefaultFraming = () => {
+      defaultFraming = false;
+    };
     controls.addEventListener("start", leaveDefaultFraming);
     function fit() {
       fitting = true;
@@ -300,16 +353,31 @@ export function Viewer({
         ortho.position.copy(center).addScaledVector(direction, 1000);
         ortho.updateProjectionMatrix();
       } else {
-        const preset = model.camera?.[matchMedia("(max-width: 760px)").matches ? "mobile" : "desktop"];
+        const preset =
+          model.camera?.[
+            matchMedia("(max-width: 760px)").matches ? "mobile" : "desktop"
+          ];
         ortho.zoom = preset?.zoom ?? 1;
         ortho.up.set(0, 0, 1);
-        ortho.position.copy(center).add(new THREE.Vector3(...(preset?.direction ?? outlineStyle.direction)).normalize().multiplyScalar(1000));
+        ortho.position
+          .copy(center)
+          .add(
+            new THREE.Vector3(...(preset?.direction ?? outlineStyle.direction))
+              .normalize()
+              .multiplyScalar(1000),
+          );
         ortho.lookAt(center);
         const pan = preset?.pan ?? [0, 0];
-        const offset = new THREE.Vector3(1, 0, 0).applyQuaternion(ortho.quaternion)
-          .multiplyScalar(-pan[0] * (ortho.right - ortho.left) / ortho.zoom)
-          .add(new THREE.Vector3(0, 1, 0).applyQuaternion(ortho.quaternion)
-            .multiplyScalar(pan[1] * (ortho.top - ortho.bottom) / ortho.zoom));
+        const offset = new THREE.Vector3(1, 0, 0)
+          .applyQuaternion(ortho.quaternion)
+          .multiplyScalar((-pan[0] * (ortho.right - ortho.left)) / ortho.zoom)
+          .add(
+            new THREE.Vector3(0, 1, 0)
+              .applyQuaternion(ortho.quaternion)
+              .multiplyScalar(
+                (pan[1] * (ortho.top - ortho.bottom)) / ortho.zoom,
+              ),
+          );
         controls.target.add(offset);
         ortho.position.add(offset);
         ortho.updateProjectionMatrix();
@@ -341,25 +409,40 @@ export function Viewer({
     let gridPlane: Angle = "face";
     let gridFadeStart = 0;
     let explodeProgress = 0;
-    let explodeTransition: { start: number; from: number; to: number } | null = null;
+    let explodeTransition: { start: number; from: number; to: number } | null =
+      null;
     function positionExplosion(now: number) {
       if (explodeTransition) {
-        const t = reduced.matches ? 1 : Math.min(1, (now - explodeTransition.start) / 400);
+        const t = reduced.matches
+          ? 1
+          : Math.min(1, (now - explodeTransition.start) / 400);
         const ease = t * t * (3 - 2 * t);
-        explodeProgress = THREE.MathUtils.lerp(explodeTransition.from, explodeTransition.to, ease);
+        explodeProgress = THREE.MathUtils.lerp(
+          explodeTransition.from,
+          explodeTransition.to,
+          ease,
+        );
         if (t === 1) explodeTransition = null;
       }
       objects.forEach(({ mesh, edge, hiddenEdge, silhouette }, i) => {
-        mesh.position.set(0, i === 2 ? 30 * explodeProgress : 0, i === 1 ? 25 * explodeProgress : 0);
+        mesh.position.set(
+          0,
+          i === 2 ? 30 * explodeProgress : 0,
+          i === 1 ? 25 * explodeProgress : 0,
+        );
         edge.position.copy(mesh.position);
         hiddenEdge.position.copy(mesh.position);
         silhouette.position.copy(mesh.position);
       });
     }
     let transition: {
-      start: number; from: THREE.Quaternion; to: THREE.Quaternion;
-      fromTarget: THREE.Vector3; toTarget: THREE.Vector3;
-      fromZoom: number; toZoom: number;
+      start: number;
+      from: THREE.Quaternion;
+      to: THREE.Quaternion;
+      fromTarget: THREE.Vector3;
+      toTarget: THREE.Vector3;
+      fromZoom: number;
+      toZoom: number;
     } | null = null;
     function display(next: Settings) {
       const changedAngle = settings.angle !== next.angle;
@@ -367,7 +450,11 @@ export function Viewer({
         const now = performance.now();
         // Reverse from the current position, even between rendered frames.
         positionExplosion(now);
-        explodeTransition = { start: now, from: explodeProgress, to: next.exploded ? 1 : 0 };
+        explodeTransition = {
+          start: now,
+          from: explodeProgress,
+          to: next.exploded ? 1 : 0,
+        };
       }
       settings = next;
       controls.enableRotate = true;
@@ -375,6 +462,14 @@ export function Viewer({
         ({ mesh, edge, hiddenEdge, silhouette, solid, flat }, i) => {
           mesh.visible = !!next.visible[i];
           edge.visible = !!next.visible[i] && next.mode !== "solid";
+          if (edge.visible && !edge.geometry.getAttribute("position")) {
+            edge.geometry.dispose();
+            edge.geometry = new THREE.EdgesGeometry(
+              mesh.geometry,
+              outlineStyle.edgeAngle,
+            );
+            hiddenEdge.geometry = edge.geometry;
+          }
           mesh.material = next.mode === "solid" ? solid : flat;
           flat.color.set(outlineStyle.background);
           edge.material.color.set(outlineStyle.line);
@@ -385,20 +480,42 @@ export function Viewer({
       );
       positionExplosion(performance.now());
       if (next.angle && changedAngle) {
-        const from = ortho.quaternion.clone(), fromTarget = controls.target.clone(), fromZoom = ortho.zoom;
+        const from = ortho.quaternion.clone(),
+          fromTarget = controls.target.clone(),
+          fromZoom = ortho.zoom;
         fit();
-        transition = changedAngle && !matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? { start: performance.now(), from, to: ortho.quaternion.clone(), fromTarget,
-              toTarget: controls.target.clone(), fromZoom, toZoom: ortho.zoom }
-          : null;
+        transition =
+          changedAngle &&
+          !matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? {
+                start: performance.now(),
+                from,
+                to: ortho.quaternion.clone(),
+                fromTarget,
+                toTarget: controls.target.clone(),
+                fromZoom,
+                toZoom: ortho.zoom,
+              }
+            : null;
       }
       annotationBuild();
     }
     function onOrbitChange() {
       if (fitting || transition || !settings.angle) return;
-      const direction = camera.position.clone().sub(controls.target).normalize();
-      const expected = settings.angle === "face" ? new THREE.Vector3(0, 0, 1) : settings.angle === "top" ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
-      if (direction.dot(expected) < 0.99999) { settings.angle = null; setAngle(null); }
+      const direction = camera.position
+        .clone()
+        .sub(controls.target)
+        .normalize();
+      const expected =
+        settings.angle === "face"
+          ? new THREE.Vector3(0, 0, 1)
+          : settings.angle === "top"
+            ? new THREE.Vector3(0, 1, 0)
+            : new THREE.Vector3(1, 0, 0);
+      if (direction.dot(expected) < 0.99999) {
+        settings.angle = null;
+        setAngle(null);
+      }
     }
     controls.addEventListener("change", onOrbitChange);
     function refreshOrbitBasis() {
@@ -411,13 +528,14 @@ export function Viewer({
       controls.enableDamping = true;
       controls.minDistance = 30;
       controls.maxDistance = 3000;
-      controls.minZoom = .2;
+      controls.minZoom = 0.2;
       controls.maxZoom = 10;
       controls.update();
       controls.addEventListener("change", onOrbitChange);
       controls.addEventListener("start", leaveDefaultFraming);
     }
     const api: View = {
+      envelope,
       update(next, measures, colors) {
         clear();
         data = next;
@@ -433,10 +551,17 @@ export function Viewer({
             new THREE.BufferAttribute(p.normals, 3),
           );
           geometry.setIndex(new THREE.BufferAttribute(p.indices, 1));
-          if (p.surfaceNormals) geometry.setAttribute("surfaceNormal", new THREE.BufferAttribute(p.surfaceNormals, 3));
+          if (p.surfaceNormals)
+            geometry.setAttribute(
+              "surfaceNormal",
+              new THREE.BufferAttribute(p.surfaceNormals, 3),
+            );
           if (model.id === "lampshade") {
             const indexed = geometry;
-            geometry = toCreasedNormals(indexed, Math.PI / 4);
+            geometry = creasedNormals(
+              indexed,
+              p.rounded ? Math.PI * 0.47 : Math.PI / 4,
+            );
             indexed.dispose();
             applySurfaceNormals(geometry);
           }
@@ -455,7 +580,7 @@ export function Viewer({
             }),
           );
           const edge = new THREE.LineSegments(
-            new THREE.EdgesGeometry(geometry, outlineStyle.edgeAngle),
+            new THREE.BufferGeometry(),
             new THREE.LineBasicMaterial({ color: 0x254f40 }),
           );
           const silhouette = new THREE.Mesh(
@@ -533,7 +658,9 @@ export function Viewer({
     view.current = api;
     const mobile = matchMedia("(max-width: 760px)");
     const viewer = node.closest<HTMLElement>(".viewer")!;
-    const title = node.closest(".model-page")?.querySelector<HTMLElement>(".model-title");
+    const title = node
+      .closest(".model-page")
+      ?.querySelector<HTMLElement>(".model-title");
     const stage = node.parentElement!;
     const toolbar = viewer.querySelector<HTMLElement>(".viewer-toolbar")!;
     const topGroups = [toolbar];
@@ -542,40 +669,74 @@ export function Viewer({
     const projected = new THREE.Vector3();
     function updateOverlap() {
       const boundary = mobile.matches && title ? title : viewer;
-      const nextExtension = Math.max(0, stage.getBoundingClientRect().top - boundary.getBoundingClientRect().top);
-      if (Math.abs(nextExtension - extension) > .5) {
+      const nextExtension = Math.max(
+        0,
+        stage.getBoundingClientRect().top -
+          boundary.getBoundingClientRect().top,
+      );
+      if (Math.abs(nextExtension - extension) > 0.5) {
         extension = nextExtension;
         viewer.style.setProperty("--canvas-extension", `${extension}px`);
       }
-      const toolbarHeight = toolbar.getBoundingClientRect().bottom - viewer.getBoundingClientRect().top;
+      const toolbarHeight =
+        toolbar.getBoundingClientRect().bottom -
+        viewer.getBoundingClientRect().top;
       const backdropHeight = `${Math.max(0, toolbarHeight)}px`;
-      if (viewer.style.getPropertyValue("--toolbar-backdrop-height") !== backdropHeight)
+      if (
+        viewer.style.getPropertyValue("--toolbar-backdrop-height") !==
+        backdropHeight
+      )
         viewer.style.setProperty("--toolbar-backdrop-height", backdropHeight);
       const canvasRect = node.getBoundingClientRect();
       const boxes = data.flatMap((part, index) => {
         if (!settings.visible[index] || !objects[index]) return [];
-        let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+        let left = Infinity,
+          top = Infinity,
+          right = -Infinity,
+          bottom = -Infinity;
         for (let corner = 0; corner < 8; corner++) {
-          projected.set(part.bounds[corner & 1 ? 3 : 0], part.bounds[corner & 2 ? 4 : 1], part.bounds[corner & 4 ? 5 : 2]);
+          projected.set(
+            part.bounds[corner & 1 ? 3 : 0],
+            part.bounds[corner & 2 ? 4 : 1],
+            part.bounds[corner & 4 ? 5 : 2],
+          );
           projected.add(objects[index].mesh.position).project(camera);
-          if (!Number.isFinite(projected.x + projected.y + projected.z) || Math.abs(projected.z) > 1) continue;
-          const x = canvasRect.left + (projected.x + 1) * canvasRect.width / 2;
-          const y = canvasRect.top + (1 - projected.y) * canvasRect.height / 2;
-          left = Math.min(left, x); right = Math.max(right, x);
-          top = Math.min(top, y); bottom = Math.max(bottom, y);
+          if (
+            !Number.isFinite(projected.x + projected.y + projected.z) ||
+            Math.abs(projected.z) > 1
+          )
+            continue;
+          const x =
+            canvasRect.left + ((projected.x + 1) * canvasRect.width) / 2;
+          const y =
+            canvasRect.top + ((1 - projected.y) * canvasRect.height) / 2;
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y);
         }
         return [{ left, right, top, bottom }];
       });
-      regions.forEach(region => {
-        if ((!mobile.matches && region === title) || (mobile.matches && region.classList.contains("viewer-tools"))) {
+      regions.forEach((region) => {
+        if (
+          (!mobile.matches && region === title) ||
+          (mobile.matches && region.classList.contains("viewer-tools"))
+        ) {
           region.removeAttribute("data-model-under");
           return;
         }
         const rect = region.getBoundingClientRect();
         // A small exit margin prevents flicker when an edge grazes a control.
         const margin = region.hasAttribute("data-model-under") ? 8 : 0;
-        const overlaps = boxes.some(box => box.right > rect.left - margin && box.left < rect.right + margin && box.bottom > rect.top - margin && box.top < rect.bottom + margin);
-        if (overlaps !== region.hasAttribute("data-model-under")) region.toggleAttribute("data-model-under", overlaps);
+        const overlaps = boxes.some(
+          (box) =>
+            box.right > rect.left - margin &&
+            box.left < rect.right + margin &&
+            box.bottom > rect.top - margin &&
+            box.top < rect.bottom + margin,
+        );
+        if (overlaps !== region.hasAttribute("data-model-under"))
+          region.toggleAttribute("data-model-under", overlaps);
       });
     }
     const resize = new ResizeObserver(() => {
@@ -600,33 +761,80 @@ export function Viewer({
       positionExplosion(performance.now());
       controls.enabled = !transition;
       if (transition) {
-        const t = reduced.matches ? 1 : Math.min(1, (performance.now() - transition.start) / 350);
+        const t = reduced.matches
+          ? 1
+          : Math.min(1, (performance.now() - transition.start) / 350);
         const ease = t * t * (3 - 2 * t);
         ortho.quaternion.slerpQuaternions(transition.from, transition.to, ease);
-        controls.target.lerpVectors(transition.fromTarget, transition.toTarget, ease);
-        ortho.position.set(0, 0, 1000).applyQuaternion(ortho.quaternion).add(controls.target);
+        controls.target.lerpVectors(
+          transition.fromTarget,
+          transition.toTarget,
+          ease,
+        );
+        ortho.position
+          .set(0, 0, 1000)
+          .applyQuaternion(ortho.quaternion)
+          .add(controls.target);
         ortho.up.set(0, 1, 0).applyQuaternion(ortho.quaternion);
-        ortho.zoom = THREE.MathUtils.lerp(transition.fromZoom, transition.toZoom, ease);
+        ortho.zoom = THREE.MathUtils.lerp(
+          transition.fromZoom,
+          transition.toZoom,
+          ease,
+        );
         ortho.updateProjectionMatrix();
-        if (t === 1) { refreshOrbitBasis(); transition = null; decorationFadeStart = performance.now(); }
+        if (t === 1) {
+          refreshOrbitBasis();
+          transition = null;
+          decorationFadeStart = performance.now();
+        }
       } else controls.update();
-      const direction = camera.position.clone().sub(controls.target).normalize();
+      const direction = camera.position
+        .clone()
+        .sub(controls.target)
+        .normalize();
       const cutoff = gridPlane === "face" ? 0.99999 : 0.99995;
-      const plane: Angle = Math.abs(direction.y) > cutoff ? "top" : Math.abs(direction.x) > cutoff ? "side" : "face";
-      if (plane !== gridPlane) { gridPlane = plane; gridFadeStart = performance.now(); }
+      const plane: Angle =
+        Math.abs(direction.y) > cutoff
+          ? "top"
+          : Math.abs(direction.x) > cutoff
+            ? "side"
+            : "face";
+      if (plane !== gridPlane) {
+        gridPlane = plane;
+        gridFadeStart = performance.now();
+      }
       const gridBounds = bounds();
       if (!gridBounds.isEmpty()) {
-        const midpoint = gridBounds.getCenter(new THREE.Vector3()), span = gridBounds.getSize(new THREE.Vector3());
+        const midpoint = gridBounds.getCenter(new THREE.Vector3()),
+          span = gridBounds.getSize(new THREE.Vector3());
         grid.rotation.set(Math.PI / 2, 0, 0);
-        grid.position.set(midpoint.x, midpoint.y, gridBounds.min.z - .5);
+        grid.position.set(midpoint.x, midpoint.y, gridBounds.min.z - 0.5);
         const radius = new THREE.Vector2(span.x, span.y);
-        if (gridPlane === "top") { grid.rotation.set(0, 0, 0); grid.position.set(midpoint.x, gridBounds.min.y - .5, midpoint.z); radius.set(span.x, span.z); }
-        if (gridPlane === "side") { grid.rotation.set(0, 0, Math.PI / 2); grid.position.set(gridBounds.min.x - .5, midpoint.y, midpoint.z); radius.set(span.y, span.z); }
-        gridMaterial.uniforms.radius.value.copy(radius.multiplyScalar(.85).addScalar(30));
+        if (gridPlane === "top") {
+          grid.rotation.set(0, 0, 0);
+          grid.position.set(midpoint.x, gridBounds.min.y - 0.5, midpoint.z);
+          radius.set(span.x, span.z);
+        }
+        if (gridPlane === "side") {
+          grid.rotation.set(0, 0, Math.PI / 2);
+          grid.position.set(gridBounds.min.x - 0.5, midpoint.y, midpoint.z);
+          radius.set(span.y, span.z);
+        }
+        gridMaterial.uniforms.radius.value.copy(
+          radius.multiplyScalar(0.85).addScalar(30),
+        );
       }
       grid.visible = !gridBounds.isEmpty() && !transition;
-      const decorationAlpha = transition ? 0 : reduced.matches ? 1 : Math.min(1, (performance.now() - decorationFadeStart) / 140);
-      gridMaterial.uniforms.opacity.value = decorationAlpha * (reduced.matches ? 1 : Math.min(1, (performance.now() - gridFadeStart) / 140));
+      const decorationAlpha = transition
+        ? 0
+        : reduced.matches
+          ? 1
+          : Math.min(1, (performance.now() - decorationFadeStart) / 140);
+      gridMaterial.uniforms.opacity.value =
+        decorationAlpha *
+        (reduced.matches
+          ? 1
+          : Math.min(1, (performance.now() - gridFadeStart) / 140));
       const alpha = reduced.matches
         ? 1
         : Math.min(1, (performance.now() - fadeStart) / 200);
@@ -653,7 +861,12 @@ export function Viewer({
           y2 = ((1 - b.y) * height) / 2;
         const length = Math.hypot(x2 - x1, y2 - y1);
         group.style.opacity = String(decorationAlpha);
-        const hidden = !!transition || ![x1, y1, x2, y2, a.z, b.z, length].every(Number.isFinite) || length < 25 || Math.abs(a.z) > 1 || Math.abs(b.z) > 1;
+        const hidden =
+          !!transition ||
+          ![x1, y1, x2, y2, a.z, b.z, length].every(Number.isFinite) ||
+          length < 25 ||
+          Math.abs(a.z) > 1 ||
+          Math.abs(b.z) > 1;
         group.style.display = hidden ? "none" : "";
         if (hidden) continue;
         const nx = (-(y2 - y1) / length) * 4,
@@ -677,9 +890,10 @@ export function Viewer({
       resize.disconnect();
       viewer.style.removeProperty("--canvas-extension");
       viewer.style.removeProperty("--toolbar-backdrop-height");
-      regions.forEach(region => region.removeAttribute("data-model-under"));
+      regions.forEach((region) => region.removeAttribute("data-model-under"));
       renderer.setAnimationLoop(null);
       controls.dispose();
+      envelope();
       clear();
       grid.geometry.dispose();
       (grid.material as THREE.Material).dispose();
@@ -708,6 +922,17 @@ export function Viewer({
         model.parts.map((p) => p.color),
       );
   }, [parts, measurements, model]);
+  useEffect(() => {
+    view.current?.envelope(
+      !generating && visible[0] ? bulbEnvelope : undefined,
+    );
+  }, [
+    bulbEnvelope?.radius,
+    bulbEnvelope?.length,
+    bulbEnvelope?.z,
+    generating,
+    visible[0],
+  ]);
   const shown = visible.filter(Boolean).length;
   return (
     <section
@@ -749,62 +974,142 @@ export function Viewer({
 
         <div className="viewer-tools">
           <button
-            className="measurements-button" aria-label="Measurements" title="Measurements" aria-pressed={dimensions}
+            className="measurements-button"
+            aria-label="Measurements"
+            title="Measurements"
+            aria-pressed={dimensions}
             onClick={() => setMeasurementPreference(!dimensions)}
           >
-            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18v10H3zM7 7v5m5-5v3m5-3v5" /></svg>
+            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 7h18v10H3zM7 7v5m5-5v3m5-3v5" />
+            </svg>
             <span className="tool-label">Measurements</span>
           </button>
-          <span className="explode-control" title="Separate parts in the preview">
-            <button aria-label="Explode" title="Explode" aria-pressed={exploded}
-              onClick={() => setExploded(!exploded)}>
-              <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6 6-3-2.4 6 4.2 3-6.4 1 .8 7-4.4-4.8L7 22l.5-7-6-1L6 10 3 5l6 3Z" /></svg>
+          <span
+            className="explode-control"
+            title="Separate parts in the preview"
+          >
+            <button
+              aria-label="Explode"
+              title="Explode"
+              aria-pressed={exploded}
+              onClick={() => setExploded(!exploded)}
+            >
+              <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 2 2.2 6 6-3-2.4 6 4.2 3-6.4 1 .8 7-4.4-4.8L7 22l.5-7-6-1L6 10 3 5l6 3Z" />
+              </svg>
               <span className="tool-label">Explode</span>
             </button>
           </span>
-          <button className="parts-tool-button" aria-label="Parts" title="Parts" ref={partsButton} popoverTarget="viewer-parts" aria-expanded={partsOpen} onClick={positionParts}>
-            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 5-10 5L2 8Zm-10 9 10 5 10-5M2 16l10 5 10-5" /></svg>
+          <button
+            className="parts-tool-button"
+            aria-label="Parts"
+            title="Parts"
+            ref={partsButton}
+            popoverTarget="viewer-parts"
+            aria-expanded={partsOpen}
+            onClick={positionParts}
+          >
+            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m12 3 10 5-10 5L2 8Zm-10 9 10 5 10-5M2 16l10 5 10-5" />
+            </svg>
             <span className="tool-label">Parts</span>
           </button>
-          <button className="transparency-button" aria-label="Transparency" title="Transparency" disabled={mode === "solid"} popoverTarget="transparency-popover" onClick={event => {
-            const rect = event.currentTarget.getBoundingClientRect();
-            setTransparencyPosition({ top: rect.bottom + 8, left: Math.max(16, Math.min(rect.right - 280, window.innerWidth - 296)) });
-          }}>
-            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M12 6l5 5m-5-1 8 8m-8-3 5 5"/></svg><span className="tool-label">Transparency</span>
-          </button>
-          <button className="fit-view-button"
-            onClick={() => view.current?.reset()}
-            title="Reset view" aria-label="Reset view"
+          <button
+            className="transparency-button"
+            aria-label="Transparency"
+            title="Transparency"
+            disabled={mode === "solid"}
+            popoverTarget="transparency-popover"
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              setTransparencyPosition({
+                top: rect.bottom + 8,
+                left: Math.max(
+                  16,
+                  Math.min(rect.right - 280, window.innerWidth - 296),
+                ),
+              });
+            }}
           >
-            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" /></svg><span>Reset view</span>
+            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 3v18M12 6l5 5m-5-1 8 8m-8-3 5 5" />
+            </svg>
+            <span className="tool-label">Transparency</span>
+          </button>
+          <button
+            className="fit-view-button"
+            onClick={() => view.current?.reset()}
+            title="Reset view"
+            aria-label="Reset view"
+          >
+            <svg className="tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" />
+            </svg>
+            <span>Reset view</span>
           </button>
         </div>
       </div>
-      <div id="transparency-popover" popover="auto" className="transparency-popover" style={transparencyPosition}>
-            <label className="transparency-control">
-              <span>
-                Transparency <output>{transparency}%</output>
-              </span>
-              <input
-                aria-label="Object transparency"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={transparency}
-                onChange={(e) => setTransparency(Number(e.target.value))}
-              />
-            </label>
+      <div
+        id="transparency-popover"
+        popover="auto"
+        className="transparency-popover"
+        style={transparencyPosition}
+      >
+        <label className="transparency-control">
+          <span>
+            Transparency <output>{transparency}%</output>
+          </span>
+          <input
+            aria-label="Object transparency"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={transparency}
+            onChange={(e) => setTransparency(Number(e.target.value))}
+          />
+        </label>
       </div>
-      <div id="viewer-parts" className="viewer-parts-popover" popover="auto"
-        style={partsPosition} onToggle={event => setPartsOpen(event.newState === "open")}>
-        <div className="parts-popover-heading"><strong>Model parts</strong>
-          <button className="icon-button" aria-label="Close parts" popoverTarget="viewer-parts" popoverTargetAction="hide">×</button>
+      <div
+        id="viewer-parts"
+        className="viewer-parts-popover"
+        popover="auto"
+        style={partsPosition}
+        onToggle={(event) => setPartsOpen(event.newState === "open")}
+      >
+        <div className="parts-popover-heading">
+          <strong>Model parts</strong>
+          <button
+            className="icon-button"
+            aria-label="Close parts"
+            popoverTarget="viewer-parts"
+            popoverTargetAction="hide"
+          >
+            ×
+          </button>
         </div>
-        <PartsPanel model={model} visible={visible} included={included} setVisible={setVisible} setIncluded={setIncluded} disabled={exporting} />
+        <PartsPanel
+          model={model}
+          visible={visible}
+          included={included}
+          setVisible={setVisible}
+          setIncluded={setIncluded}
+          disabled={exporting}
+        />
       </div>
-      <div className="viewer-stage" data-generating={generating || undefined} aria-busy={generating}>
-        <div className={`viewer-loading-art${previewReady ? " is-ready" : ""}`} aria-hidden="true"><ModelArtwork model={model} /></div>
+      <div
+        className="viewer-stage"
+        data-generating={generating || undefined}
+        aria-busy={generating}
+      >
+        <div
+          className={`viewer-loading-art${previewReady ? " is-ready" : ""}`}
+          aria-hidden="true"
+        >
+          <ModelArtwork model={model} />
+        </div>
         <div
           ref={host}
           className="viewer-canvas"
@@ -862,7 +1167,6 @@ export function Viewer({
           {error}
         </p>
       )}
-
     </section>
   );
 }

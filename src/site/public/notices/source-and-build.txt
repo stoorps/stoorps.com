@@ -26,7 +26,7 @@ substitute for the accompanying licence texts.
 
 The manifold backend uses manifold-rust 0.13.1 (Apache 2.0):
 https://crates.io/crates/manifold-rust/0.13.1
-Each model selects its backend in catalog.toml. Both are Rust crates compiled
+Each model selects its backend in catalog.yml. Both are Rust crates compiled
 to WASM. The manifold build uses the plain Rust image configured in
 src/tools/build-wasm.mjs and does not link Open CASCADE. Cargo.lock pins
 its dependencies. To build only the lampshade:

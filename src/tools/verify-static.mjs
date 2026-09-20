@@ -1,8 +1,8 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { readModels } from "./model-catalog.mjs";
-const modelPages = (await readModels()).map(
-  ({ catalog }) => `designs/${catalog.id}/index.html`,
-);
+const modelPages = (await readModels())
+  .filter(({ catalog }) => catalog.enabled !== false)
+  .map(({ catalog }) => `designs/${catalog.id}/index.html`);
 for (const route of [
   "index.html",
   "about/index.html",
@@ -13,6 +13,20 @@ for (const route of [
   const html = await readFile(file, "utf8");
   if (!html.includes("stoorps") || html.includes("Internal Server Error"))
     throw new Error(`Invalid static page: ${route}`);
+}
+const home = await readFile("dist/client/index.html", "utf8");
+for (const { catalog } of await readModels()) {
+  if (catalog.enabled !== false) continue;
+  const exists = await access(
+    `dist/client/designs/${catalog.id}/index.html`,
+  ).then(
+    () => true,
+    () => false,
+  );
+  if (exists || home.includes(`/designs/${catalog.id}`))
+    throw new Error(
+      `Disabled model is still published or linked: ${catalog.id}`,
+    );
 }
 await writeFile("dist/client/.nojekyll", "");
 // A plain static 404 does not depend on a server or SPA rewrite.

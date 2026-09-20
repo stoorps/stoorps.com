@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NumberStepper } from "./NumberStepper";
 import type { Parameters } from "../models/types";
-import type { BuildResult } from "./protocol";
 
 export function LampshadeProfile({
   params: p,
@@ -221,68 +220,6 @@ export function LampshadeProfile({
       <p className="parameter-help">
         Drag a point on the right, or select it to edit its diameter on the
         left. The grey side mirrors the profile.
-      </p>
-    </section>
-  );
-}
-
-export function LampshadeGuidance({
-  params: p,
-  result,
-}: {
-  params: Parameters;
-  result: BuildResult | null;
-}) {
-  const notes: string[] = [];
-  if (result)
-    for (const [i, part] of result.parts.entries()) {
-      const b = part.bounds,
-        dims = [b[3] - b[0], b[4] - b[1], b[5] - b[2]];
-      if (
-        dims[0] + 10 > p.build_x ||
-        dims[1] + 10 > p.build_y ||
-        dims[2] > p.build_z
-      )
-        notes.push(
-          `${i === 0 ? "Shade / collar" : "Adapter"} exceeds the upright build envelope with 5 mm brim space on each side. Change dimensions or check another orientation in your slicer.`,
-        );
-    }
-  if (p.thickness < p.extrusion_width * 3)
-    notes.push(
-      "Wall / strand thickness is below three extrusion widths. Increase it for a more robust first print.",
-    );
-  if (p.layer_height > p.nozzle * 0.75)
-    notes.push(
-      "Layer height is above 75% of nozzle diameter. Check your slicer settings.",
-    );
-  if (p.extrusion_width < p.nozzle * 0.9 || p.extrusion_width > p.nozzle * 1.5)
-    notes.push(
-      "Extrusion width differs substantially from nozzle diameter. Check your slicer line width.",
-    );
-  if ((p.material === 1 || p.material === 3) && p.nozzle < 0.4)
-    notes.push(
-      "A small nozzle may be unsuitable for fibre-filled filament. Check its manufacturer guidance.",
-    );
-  return (
-    <section className="shade-guidance" aria-label="Print recommendations">
-      <strong>Print checks</strong>
-      <p>
-        Suggested starting strand thickness:{" "}
-        {Math.max(1.2, p.extrusion_width * 3).toFixed(2)} mm or more. This is
-        guidance, not a printable limit.
-      </p>
-      <p>
-        Fixture hole: {(p.fixture_diameter + p.hole_clearance).toFixed(2)} mm.
-        Thread clearance: {p.thread_clearance.toFixed(2)} mm per side.
-      </p>
-      {notes.map((note) => (
-        <p className="parameter-error" key={note}>
-          {note}
-        </p>
-      ))}
-      <p>
-        Print the fit-test pair first. Inspect overhangs and supports in the
-        slicer. Material families do not establish a temperature or load rating.
       </p>
     </section>
   );

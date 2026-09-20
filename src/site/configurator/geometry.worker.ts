@@ -67,7 +67,7 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
       try {
         for (let i = 0; i < model.parts.length; i++)
           nextParts.push(next.part(i));
-        const meshes = nextParts.map((p) => {
+        const meshes = nextParts.map((p, partIndex) => {
           const positions = p.positions();
           // CAD bounding boxes can conservatively expand around fillets. The
           // displayed dimensions use assembled tessellation bounds instead.
@@ -86,6 +86,13 @@ scope.onmessage = async ({ data }: MessageEvent<Request>) => {
           }
           return {
             positions,
+            rounded:
+              model.id === "lampshade" &&
+              partIndex === 0 &&
+              (data.params.pattern === 2 ||
+                (!!data.params.cell_rounded &&
+                  !!data.params.cell_cut_inside &&
+                  !!data.params.cell_cut_outside)),
             normals: p.normals(),
             surfaceNormals: p.surface_normals?.(),
             indices: p.indices(),

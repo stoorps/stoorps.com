@@ -3,6 +3,7 @@ export type PartMesh = {
   positions: Float32Array;
   normals: Float32Array;
   surfaceNormals?: Float32Array;
+  rounded?: boolean;
   indices: Uint32Array;
   volume: number;
   bounds: number[];

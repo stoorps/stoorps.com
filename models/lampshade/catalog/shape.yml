@@ -1,0 +1,56 @@
+group_name: Shape
+parameters:
+  - share_id: 1
+    key: height
+    label: Shade height
+    default: 180
+    min: 80
+    max: 280
+    step: 1
+    unit: mm
+    help: ""
+    advanced: false
+
+  - share_id: 2
+    key: bottom_diameter
+    label: Bottom diameter
+    default: 190
+    min: 100
+    max: 290
+    step: 1
+    unit: mm
+    help: ""
+    advanced: false
+
+  - share_id: 3
+    key: middle_diameter
+    label: Middle diameter
+    default: 170
+    min: 100
+    max: 290
+    step: 1
+    unit: mm
+    help: ""
+    advanced: false
+
+  - share_id: 4
+    key: top_diameter
+    label: Top diameter
+    default: 120
+    min: 100
+    max: 290
+    step: 1
+    unit: mm
+    help: ""
+    advanced: false
+
+  - share_id: 5
+    key: curve
+    label: Curve softness
+    default: 1
+    min: 0
+    max: 1
+    step: 0.05
+    unit: ""
+    help: Blend straight sides into a smooth profile.
+    advanced: false

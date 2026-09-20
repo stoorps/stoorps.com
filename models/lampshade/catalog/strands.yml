@@ -1,0 +1,31 @@
+group_name: Strands
+parameters:
+  - share_id: 82
+    key: wave_height
+    label: Wave height
+    default: 10
+    min: 1
+    max: 40
+    step: 0.5
+    unit: mm
+
+  - share_id: 110
+    key: wave_width
+    label: Wave width
+    default: 10
+    min: 4
+    max: 200
+    step: 0.1
+    unit: mm
+    help: Target repeat width along the widest rippled perimeter. Whole repeats are fitted around the
+      shade.
+
+  - share_id: 111
+    key: wave_merge
+    label: Layer merge
+    default: 50
+    min: 1
+    max: 100
+    step: 1
+    unit: "%"
+    help: Overlap at neighbouring peak/trough joins. Spacing is calculated automatically.

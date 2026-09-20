@@ -1,0 +1,187 @@
+# Model catalogue. Sharing IDs are permanent.
+backend: cadrum
+id: bilresa
+enabled: true
+share_id: 1
+default_view: outline
+revision: 2
+title: BILRESA switch cover (UK)
+description: A renter-friendly smart home upgrade.
+configuration_hint: Choose how many BILRESA remotes sit on each side of your wall switch.
+parameter_note: An empty side keeps a 4 mm margin for rigidity.
+overview: The main body holds your BILRESA remotes beside the wall switch. A removable blanking
+  plate and cover top keep the original switches accessible.
+print_notes: Measure your wall plate and adjust its width, height and depth before printing. Set the
+  adhesive recess to suit the thickness of your mounting adhesive.
+source_url: https://cad.onshape.com/documents/a8d7f806b021fde567015702/w/f3c1ffb1b3be092d2a2ce889/e/95dc2ef3acda41e95cefbb8f
+camera:
+  desktop:
+    direction:
+      - 0.44482708
+      - -0.59876567
+      - 0.66603946
+    zoom: 1.3782067
+    pan:
+      - 0
+      - 0
+  mobile:
+    direction:
+      - 1
+      - -1
+      - 1.4
+    zoom: 1.4
+    pan:
+      - 0
+      - 0.04
+parameter_groups:
+  - group_name: Layout
+    parameters:
+      - share_id: 1
+        key: num_switches_left
+        label: BILRESAs on left
+        default: 1
+        min: 0
+        max: 4
+        step: 1
+      - share_id: 2
+        key: num_switches_right
+        label: BILRESAs on right
+        default: 1
+        min: 0
+        max: 4
+        step: 1
+
+  - group_name: Switch plate
+    parameters:
+      - share_id: 3
+        key: sp_width
+        label: Width
+        default: 85.6
+        min: 75
+        max: 120
+        step: 0.01
+        unit: mm
+        advanced: false
+        help: Measure the outside width of the wall plate.
+      - share_id: 4
+        key: sp_height
+        label: Height
+        default: 85.35
+        min: 80
+        max: 120
+        step: 0.01
+        unit: mm
+        advanced: false
+        help: Measure the outside height of the wall plate.
+      - share_id: 5
+        key: sp_depth
+        label: Depth
+        default: 8.19
+        min: 6
+        max: 10
+        step: 0.01
+        unit: mm
+        advanced: false
+        help: Distance the plate projects from the wall.
+
+  - group_name: Fit
+    parameters:
+      - share_id: 6
+        key: switch_tolerance
+        label: BILRESA clearance
+        default: 0.1
+        min: 0.05
+        max: 0.4
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Extra space on each side of a remote.
+      - share_id: 7
+        key: sp_tolerance
+        label: Plate clearance
+        default: 0.2
+        min: 0.1
+        max: 0.4
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Extra space on each side of the wall plate.
+      - share_id: 8
+        key: bracket_rail_tolerance
+        label: Rail clearance
+        default: 0.2
+        min: 0.1
+        max: 0.4
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Clearance around the sliding cover rails.
+      - share_id: 9
+        key: cover_tolerance
+        label: Cover clearance
+        default: 0.05
+        min: 0.02
+        max: 0.2
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Gap at the removable cover joint.
+
+  - group_name: Mounting
+    parameters:
+      - share_id: 10
+        key: mag_xy_tolerance
+        label: Magnetic plate clearance
+        default: 0.01
+        min: 0.01
+        max: 0.3
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Extra space around the supplied magnetic plate.
+      - share_id: 11
+        key: mag_adhesive_tolerance
+        label: Adhesive recess
+        default: 0.3
+        min: 0.1
+        max: 0.8
+        step: 0.01
+        unit: mm
+        advanced: true
+        help: Space for adhesive behind the magnetic plate.
+
+  - group_name: Structure
+    parameters:
+      - share_id: 12
+        key: asm_wall_thickness
+        label: Wall thickness
+        default: 2.5
+        min: 2.5
+        max: 4
+        step: 0.1
+        unit: mm
+        advanced: true
+        help: Base thickness; outer walls grow with this setting.
+      - share_id: 13
+        key: switch_pitch
+        label: Remote spacing
+        default: 4
+        min: 4
+        max: 8
+        step: 0.1
+        unit: mm
+        advanced: true
+        help: Material between remote pockets; retained on empty sides.
+parts:
+
+  - id: body
+    name: Main body
+    color: 5541756
+
+  - id: blanking-plate
+    name: Blanking plate
+    color: 14999493
+
+  - id: cover-top
+    name: Cover top
+    color: 13011799

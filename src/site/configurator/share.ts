@@ -1,4 +1,9 @@
 import {
+  legacyWaveDefaults,
+  revisionFiveWaveDefaults,
+  migrateWave,
+} from "../../../models/lampshade/waves.mjs";
+import {
   defaults,
   validateParameters,
   type ModelDefinition,
@@ -62,16 +67,23 @@ function decodeCompact(model: ModelDefinition, bytes: Uint8Array): Parameters {
   };
   if (read() !== model.share_id)
     throw new Error("This link belongs to a different model.");
-  if (read() !== model.revision)
+  const revision = read();
+  const oldWave =
+    model.id === "lampshade" && model.revision >= 5 && revision === 4;
+  const oldArch =
+    model.id === "lampshade" && model.revision === 6 && revision === 5;
+  if (revision !== model.revision && !oldWave && !oldArch)
     throw new Error(
       "This model revision is unavailable. The design has not been substituted.",
     );
-  const params = defaults(model);
+  let params = defaults(model);
+  if (oldWave || oldArch) params = revisionFiveWaveDefaults(params);
+  if (oldWave) params = legacyWaveDefaults(params);
   const seen = new Set<number>();
   while (offset < bytes.length) {
     const id = read();
     const p = model.parameters.find((p) => p.share_id === id);
-    if (!p || seen.has(id))
+    if (!p || seen.has(id) || (oldWave && id > 109) || (oldArch && id > 111))
       throw new Error("This configuration has unknown or duplicate settings.");
     seen.add(id);
     const ticks = read();
@@ -80,6 +92,7 @@ function decodeCompact(model: ModelDefinition, bytes: Uint8Array): Parameters {
     // Remove floating point arithmetic noise while preserving catalogue precision.
     params[p.key] = Number((p.min + ticks * p.step).toPrecision(15));
   }
+  if (oldWave) params = migrateWave(params);
   validateParameters(model, params);
   return params;
 }
@@ -132,21 +145,31 @@ export function decodeConfiguration(
     value.modelRevision === 2;
   const previousCutaways =
     model.id === "lampshade" &&
-    model.revision === 4 &&
+    model.revision >= 4 &&
     value.modelRevision === 3;
   if (
     value.modelRevision !== model.revision &&
     !legacy &&
     !legacyShade &&
     !previousCells &&
-    !previousCutaways
+    !previousCutaways &&
+    !(
+      model.id === "lampshade" &&
+      model.revision >= 5 &&
+      (value.modelRevision === 4 || value.modelRevision === 5)
+    )
   )
     throw new Error(
       "This model revision is unavailable. The design has not been substituted.",
     );
   if (!record(value.overrides))
     throw new Error("This configuration has invalid settings.");
-  const params = defaults(model);
+  const oldWave = model.id === "lampshade" && Number(value.modelRevision) < 5;
+  let params =
+    model.id === "lampshade" && Number(value.modelRevision) < 6
+      ? revisionFiveWaveDefaults(defaults(model))
+      : defaults(model);
+  if (oldWave) params = legacyWaveDefaults(params);
   for (const [key, valueOverride] of Object.entries(value.overrides)) {
     if (
       (legacyShade || previousCells || previousCutaways) &&
@@ -199,6 +222,7 @@ export function decodeConfiguration(
       Math.min(100, Math.round(((32 - spacing) / 26) * 100)),
     );
   }
+  if (oldWave) params = migrateWave(params);
   validateParameters(model, params);
   return params;
 }

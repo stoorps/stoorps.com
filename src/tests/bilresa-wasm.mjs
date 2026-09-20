@@ -101,7 +101,7 @@ strictAssert.deepEqual(
   contract(
     (await readModels()).find((m) => m.catalog.id === "bilresa").catalog,
   ),
-  "Compiled Rust and source TOML geometry settings match",
+  "Compiled Rust and source YAML geometry settings match",
 );
 
 const variants = [

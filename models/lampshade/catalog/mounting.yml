@@ -1,0 +1,26 @@
+group_name: Mounting
+parameters:
+  - share_id: 12
+    key: mount_depth
+    label: Mount depth
+    default: 35
+    min: 0
+    max: 120
+    step: 1
+    unit: mm
+    help: Inset from the top for a pendant, or bottom for a lamp, to the adapter clamping face.
+    advanced: false
+
+  - share_id: 13
+    key: orientation
+    label: Use
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+    unit: ""
+    help: ""
+    options:
+      - Pendant
+      - Table / floor lamp
+    advanced: false

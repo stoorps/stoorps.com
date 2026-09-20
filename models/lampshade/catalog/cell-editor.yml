@@ -1,0 +1,389 @@
+group_name: Cell editor
+parameters:
+  - share_id: 27
+    key: cell_nodes
+    label: Node count
+    default: 4
+    min: 3
+    max: 8
+    step: 1
+
+  - share_id: 28
+    key: cell_aspect
+    label: Cell proportions
+    default: 1
+    min: 0.5
+    max: 2
+    step: 0.05
+
+  - share_id: 29
+    key: cell_rotation
+    label: Opening rotation
+    default: 0
+    min: -180
+    max: 180
+    step: 1
+
+  - share_id: 30
+    key: cell_offset
+    label: Alternating row offset
+    default: 0.5
+    min: 0
+    max: 1
+    step: 0.05
+
+  - share_id: 31
+    key: cell_0_x
+    label: Node 1 x
+    default: 0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 32
+    key: cell_0_y
+    label: Node 1 y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 33
+    key: cell_0_hx
+    label: Node 1 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 34
+    key: cell_0_hy
+    label: Node 1 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 35
+    key: cell_0_smooth
+    label: Node 1 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 36
+    key: cell_1_x
+    label: Node 2 x
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 37
+    key: cell_1_y
+    label: Node 2 y
+    default: 0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 38
+    key: cell_1_hx
+    label: Node 2 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 39
+    key: cell_1_hy
+    label: Node 2 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 40
+    key: cell_1_smooth
+    label: Node 2 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 41
+    key: cell_2_x
+    label: Node 3 x
+    default: -0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 42
+    key: cell_2_y
+    label: Node 3 y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 43
+    key: cell_2_hx
+    label: Node 3 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 44
+    key: cell_2_hy
+    label: Node 3 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 45
+    key: cell_2_smooth
+    label: Node 3 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 46
+    key: cell_3_x
+    label: Node 4 x
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 47
+    key: cell_3_y
+    label: Node 4 y
+    default: -0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 48
+    key: cell_3_hx
+    label: Node 4 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 49
+    key: cell_3_hy
+    label: Node 4 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 50
+    key: cell_3_smooth
+    label: Node 4 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 51
+    key: cell_4_x
+    label: Node 5 x
+    default: 0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 52
+    key: cell_4_y
+    label: Node 5 y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 53
+    key: cell_4_hx
+    label: Node 5 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 54
+    key: cell_4_hy
+    label: Node 5 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 55
+    key: cell_4_smooth
+    label: Node 5 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 56
+    key: cell_5_x
+    label: Node 6 x
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 57
+    key: cell_5_y
+    label: Node 6 y
+    default: 0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 58
+    key: cell_5_hx
+    label: Node 6 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 59
+    key: cell_5_hy
+    label: Node 6 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 60
+    key: cell_5_smooth
+    label: Node 6 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 61
+    key: cell_6_x
+    label: Node 7 x
+    default: -0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 62
+    key: cell_6_y
+    label: Node 7 y
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 63
+    key: cell_6_hx
+    label: Node 7 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 64
+    key: cell_6_hy
+    label: Node 7 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 65
+    key: cell_6_smooth
+    label: Node 7 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 66
+    key: cell_7_x
+    label: Node 8 x
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 67
+    key: cell_7_y
+    label: Node 8 y
+    default: -0.88
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 68
+    key: cell_7_hx
+    label: Node 8 hx
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 69
+    key: cell_7_hy
+    label: Node 8 hy
+    default: 0
+    min: -1
+    max: 1
+    step: 0.001
+
+  - share_id: 70
+    key: cell_7_smooth
+    label: Node 8 smooth
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 71
+    key: cell_cut_inside
+    label: Cut away inside
+    default: 1
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 72
+    key: cell_cut_outside
+    label: Cut away outside
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+
+  - share_id: 73
+    key: cell_scale
+    label: Cell size
+    default: 1.7
+    min: 0.5
+    max: 2
+    step: 0.05
+    help: Size relative to cell spacing. Increase until neighbouring shapes overlap when cutting away
+      the outside.
+
+  - share_id: 80
+    key: cell_rounded
+    label: Rounded
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+    help: Use a round strand cross-section when both cutaways are enabled. Wall / strand thickness sets
+      the tube diameter.

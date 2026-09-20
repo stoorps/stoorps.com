@@ -7,6 +7,7 @@ import { renderPreview } from "./render-preview.mjs";
 await mkdir("src/generated/previews", { recursive: true });
 const images = {};
 for (const { catalog } of await readModels()) {
+  if (catalog.enabled === false) continue;
   const directory = path.resolve("src/generated/models", catalog.id);
   const module = await import(pathToFileURL(path.join(directory, "model.js")));
   await module.default({

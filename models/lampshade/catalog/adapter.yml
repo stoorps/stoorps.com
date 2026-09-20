@@ -1,0 +1,70 @@
+group_name: Adapter
+parameters:
+  - share_id: 14
+    key: fixture_diameter
+    label: Fixture diameter
+    default: 26.62
+    min: 20
+    max: 45
+    step: 0.01
+    unit: mm
+    help: Measured fixture diameter before adding clearance.
+    advanced: false
+
+  - share_id: 15
+    key: hole_clearance
+    label: Hole clearance
+    default: 0.4
+    min: 0
+    max: 1
+    step: 0.05
+    unit: mm
+    help: Added across the diameter, not per side.
+    advanced: false
+
+  - share_id: 16
+    key: clamp_diameter
+    label: Clamping area diameter
+    default: 40
+    min: 34
+    max: 54
+    step: 1
+    unit: mm
+    help: Keep larger than the fixture hole; coarse thread sits outside this area.
+    advanced: false
+
+  - share_id: 17
+    key: plate_thickness
+    label: Clamping plate thickness
+    default: 3
+    min: 2
+    max: 5
+    step: 0.1
+    unit: mm
+    help: ""
+    advanced: false
+
+  - share_id: 18
+    key: thread_clearance
+    label: Thread clearance
+    default: 0.25
+    min: 0.1
+    max: 0.6
+    step: 0.05
+    unit: mm
+    help: Radial clearance between mating thread surfaces.
+    advanced: false
+    
+  - share_id: 19
+    key: fit_test
+    label: Output
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+    unit: ""
+    help: ""
+    options:
+      - Complete shade + adapter
+      - Fit-test collar + adapter
+    advanced: false

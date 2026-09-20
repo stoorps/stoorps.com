@@ -4,7 +4,7 @@ This document includes historical spike results. The obsolete HTML demos and the
 
 ## Model workspace refactor — 15 September 2026
 
-Each model now owns its Rust crate, `model.rs`, `catalog.toml`, examples and references under `models/<id>/`. Shared Rust export support, the TanStack site, tooling and tests live under `src/`. Catalogue data, model loaders and model routes are generated from the model directories. Each model has its own lazily loaded WASM module; the box fixture is excluded from the production bundle.
+Each model now owns its Rust crate, `model.rs`, `catalog.yml`, examples and references under `models/<id>/`. Shared Rust export support, the TanStack site, tooling and tests live under `src/`. Catalogue data, model loaders and model routes are generated from the model directories. Each model has its own lazily loaded WASM module; the box fixture is excluded from the production bundle.
 
 Validation after moving and rebuilding the sources:
 
@@ -12,7 +12,7 @@ Validation after moving and rebuilding the sources:
 - Eight site/catalogue test groups pass, including all 81 share-link count combinations and catalogue validation.
 - The box and seven-case BILRESA WASM suites pass. Independent native CAD/mesh validation passes for all 21 BILRESA parts and seven combined STEP exports, including reference comparisons and assembled overlap checks.
 - The browser worker passes 12 consecutive builds, seven exports, invalid-input rejection and teardown/restart with the model-scoped loader.
-- The production preview restores the existing shared configuration. The user's edited title and labels appear from TOML without recompiling WASM. The mismatch guard compares model revision, parameter keys/defaults/limits/steps and part identities; presentation-only metadata is excluded.
+- The production preview restores the existing shared configuration. The user's edited title and labels appear from YAML without recompiling WASM. The mismatch guard compares model revision, parameter keys/defaults/limits/steps and part identities; presentation-only metadata is excluded.
 
 Removed the obsolete root demo pages, `web/` interface, handwritten catalogue, old build script and old `pkg/` outputs. Useful tests and Onshape/STL references were relocated, not deleted. Generated build output and development caches remain ignored. Physical fit and cross-browser limits below still apply.
 

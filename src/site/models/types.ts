@@ -19,6 +19,8 @@ export type CameraPreset = {
   pan: readonly [number, number];
 };
 export type ModelDefinition = {
+  /** Omitted flags preserve existing live models. */
+  enabled?: boolean;
   share_id: number;
   default_view?: "solid" | "outline";
   backend: "cadrum" | "manifold";

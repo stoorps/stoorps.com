@@ -1,11 +1,13 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "smol-toml";
+import { readCatalog } from "./catalog-yaml.mjs";
 export function validateCatalog(value, directory) {
   if (!value || typeof value !== "object" || Array.isArray(value))
-    throw new Error("Catalogue must be a TOML table");
+    throw new Error("Catalogue must be a YAML mapping");
   const allowed = [
     "id",
+    "enabled",
     "share_id",
     "revision",
     "title",
@@ -26,6 +28,8 @@ export function validateCatalog(value, directory) {
     throw new Error(`${directory}: unknown catalogue field`);
   if (!/^[a-z][a-z0-9-]*$/.test(value.id) || value.id !== directory)
     throw new Error(`${directory}: id must match its directory`);
+  if (value.enabled !== undefined && typeof value.enabled !== "boolean")
+    throw new Error(`${directory}: enabled must be a boolean`);
   if (!Number.isSafeInteger(value.revision) || value.revision < 1)
     throw new Error(`${directory}: invalid revision`);
   for (const key of ["title", "description"])
@@ -194,7 +198,7 @@ export async function readModels(root = process.cwd()) {
     entries.map(async (entry) => {
       const folder = path.join(directory, entry.name);
       const catalog = validateCatalog(
-        parse(await readFile(path.join(folder, "catalog.toml"), "utf8")),
+        await readCatalog(path.join(folder, "catalog.yml")),
         entry.name,
       );
       const manifest = parse(

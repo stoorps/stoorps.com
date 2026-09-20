@@ -1,8 +1,8 @@
 # BILRESA model package
 
 - `model.rs` builds the main body, blanking plate and cover top. Fixed mechanical measurements live here.
-- `catalog.toml` owns the model ID/revision, exposed parameter defaults and limits, part names/colours and model page copy.
-- `build.rs` reads that catalogue at compile time. The Rust parameter defaults/limits and exported `catalog_json()` derive from the same TOML used by the website.
+- `catalog.yml` owns the model ID/revision, exposed parameter defaults and limits, part names/colours and model page copy.
+- `build.rs` reads that catalogue at compile time. The Rust parameter defaults/limits and exported `catalog_json()` derive from the same YAML used by the website.
 - `reference/` contains the original Onshape source and reference meshes. These are validation input, not runtime geometry.
 
 Run from the workspace root:
@@ -17,7 +17,7 @@ The native probe writes its STEP/STL exports into `artifacts/` (create that dire
 
 ## Adding a model
 
-Create another folder under `models/` with its own `Cargo.toml`, `catalog.toml` and `model.rs`. The Cargo workspace includes `models/*`; npm tooling discovers all model catalogues and generates their lazy loaders and static `/designs/<id>` pages. The homepage is editorial and can feature selected models separately.
+Create another folder under `models/` with its own `Cargo.toml`, `catalog.yml` and `model.rs`. The Cargo workspace includes `models/*`; npm tooling discovers all model catalogues and generates their lazy loaders and static `/designs/<id>` pages. The homepage is editorial and can feature selected models separately.
 
 A model module exports the shared ABI in `src/site/configurator/protocol.ts`:
 
@@ -35,7 +35,7 @@ Use `model-engine` for meshing/export and call its `initialize()` from the model
 
 - Counts: 0–4 independently on each side.
 - Plate width: 75–120 mm; height: 80–120 mm; depth: 6–10 mm.
-- Advanced: remote/plate/rail/cover clearances, magnetic plate clearance and adhesive recess, wall thickness and remote spacing. Exact ranges and steps live in TOML.
+- Advanced: remote/plate/rail/cover clearances, magnetic plate clearance and adhesive recess, wall thickness and remote spacing. Exact ranges and steps live in YAML.
 
 Defaults retain the original shape. Outer height follows the plate height with the reference 2.31 mm edge wall at default thickness. Rails and blanking plate follow height independently of width, retaining the reference 0.125 mm stopper relief. At tight rail clearance, the blanking plate stops at least 0.025 mm inside the central opening to avoid intersecting the body.
 

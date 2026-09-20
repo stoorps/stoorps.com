@@ -1,6 +1,6 @@
-import { parse } from "smol-toml";
+import { readCatalog } from "../../src/tools/catalog-yaml.mjs";
 import { readFile, writeFile } from "node:fs/promises";
-const catalog = parse(await readFile("models/lampshade/catalog.toml", "utf8"));
+const catalog = await readCatalog("models/lampshade/catalog.yml");
 const p = {
   ...Object.fromEntries(catalog.parameters.map((x) => [x.key, x.default])),
   ripple_depth: 1,

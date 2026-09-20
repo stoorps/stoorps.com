@@ -283,8 +283,8 @@ export function CellEditor({
         {p.cell_cut_outside
           ? "Neighbouring shapes must overlap with material to join. Cell size scales this shape relative to the spacing; the boundary is a drawing guide, not a separation limit."
           : "The dashed boundary reserves material between neighbouring cutouts."}{" "}
-        The finished shape is automatically centred and scaled to fit −1 to 1,
-        preserving its proportions. Use cell size and aspect to adjust the
+        The finished shape is automatically centred and scaled to fill −1 to 1
+        independently in X and Y. Use cell size and aspect to adjust the
         pattern. A shape cannot cross itself. Rotation is applied to the
         finished pattern.
       </p>

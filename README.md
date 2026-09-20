@@ -8,7 +8,7 @@ A personal site with model-scoped Rust CAD packages, a shared WASM engine and a 
 models/
   bilresa/
     Cargo.toml          # independently buildable model crate
-    catalog.toml        # identity, revision, controls, parts and page copy
+    catalog.yml        # identity, revision, controls, parts and page copy
     model.rs            # geometry and the model's WASM entry point
     build.rs            # generates Rust constants from the catalogue
     reference/          # original Onshape source and comparison meshes
@@ -35,7 +35,7 @@ npm run wasm:build
 npm run dev
 ```
 
-Open the URL printed by Vite, normally http://127.0.0.1:5173. Routes include `/`, `/about` and `/designs/bilresa`. Rebuild WASM after changing Rust or geometry-relevant metadata (defaults, limits, parameter keys or part identities). The development server regenerates its catalogue when TOML changes. Titles, descriptions, labels and colours update without recompiling; geometry-contract changes are rejected until WASM is rebuilt.
+Open the URL printed by Vite, normally http://127.0.0.1:5173. Routes include `/`, `/about` and `/designs/bilresa`. Rebuild WASM after changing Rust or geometry-relevant metadata (defaults, limits, parameter keys or part identities). The development server regenerates its catalogue when YAML changes. Titles, descriptions, labels and colours update without recompiling; geometry-contract changes are rejected until WASM is rebuilt.
 
 ## Check and build
 
@@ -52,7 +52,7 @@ The preview serves `dist/client` on port 4174. For a repository Pages site use `
 
 ## Models
 
-Each model directory in `models/` contains a Rust Cargo crate and `catalog.toml`. The catalogue selects `backend = "cadrum"` for CAD solids or `backend = "manifold"` for triangle-mesh solids. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue.
+Each model directory in `models/` contains a Rust Cargo crate and `catalog.yml`. The catalogue selects `backend: cadrum` for CAD solids or `backend: manifold` for triangle-mesh solids. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue. Set `enabled: false` to hide a model from the homepage and disable its design route and static page; omitted flags default to enabled. Disabled models remain available to build and test tooling.
 
 See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
@@ -83,3 +83,45 @@ Set `default_view = "solid"` or `default_view = "outline"` in a model catalogue 
 New links use Base64url-encoded binary format 2: a version byte, model `share_id`, model revision, then pairs of parameter `share_id` and integer ticks from its minimum. Integers use unsigned base-128 varints. Only changed parameters are included, sorted by sharing ID. Default configurations omit the hash and follow the current catalogue defaults. Existing JSON format-1 links remain readable, including supported revision migrations.
 
 Model sharing IDs must be globally unique; parameter sharing IDs must be unique within a model. These are permanent identities: do not renumber or reuse them when reordering/removing catalogue entries. Changing defaults, minimums, steps or parameter meaning requires a model revision bump. Unsupported compact revisions are rejected rather than silently interpreted with a newer catalogue.
+
+### Catalogue sections and references
+
+Catalogues use YAML (`catalog.yml`). Large catalogues can put parameter groups in
+`catalog/shape.yml`, `catalog/pattern.yml`, etc., and include them in order:
+
+```yaml
+parameter_groups:
+  - $ref: catalog/shape.yml
+  - $ref: catalog/pattern.yml
+```
+
+Each section has a group root, for example `catalog/shape.yml`:
+
+```yaml
+group_name: Shape
+parameters:
+  - share_id: 1
+    key: height
+    label: Shade height
+    default: 180
+    min: 80
+    max: 280
+    step: 1
+    unit: mm
+```
+
+Groups can also be written inline under `parameter_groups`. Each group name must
+be unique; parameters inherit it, so individual entries should not specify
+`group`. The loaders flatten groups into the existing runtime parameter list,
+preserving group and parameter order. Do not mix `parameters` and
+`parameter_groups` at the catalogue root.
+
+A reference replaces
+its mapping; when a referenced list appears inside a list, its entries are
+spliced into that list. References resolve relative to the containing file and
+must stay inside the model directory. Nested references are supported; cycles,
+missing files, remote URLs, fragments and sibling fields on `$ref` mappings are
+rejected. Standard YAML anchors, aliases and `<<` merges work within each file;
+anchors do not cross file boundaries. Both the JavaScript catalogue loader and
+Rust build scripts resolve the same structure. Editing section files triggers a
+preview reload and Cargo rebuild. Keep parameter `share_id` values unchanged.

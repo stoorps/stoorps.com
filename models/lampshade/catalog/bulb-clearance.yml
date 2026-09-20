@@ -1,0 +1,43 @@
+group_name: Bulb clearance
+parameters:
+  - share_id: 76
+    key: bulb_length
+    help: Length of the centred cylindrical bulb body envelope, excluding its socket.
+    label: Bulb body length
+    default: 100
+    min: 10
+    max: 250
+    step: 1
+    unit: mm
+
+  - share_id: 77
+    key: bulb_offset
+    help: Distance from the adapter plate underside to the nearest end of the bulb body; mirrored for
+      lamp orientation.
+    label: Bulb position below adapter
+    default: 12
+    min: 0
+    max: 150
+    step: 1
+    unit: mm
+    
+  - share_id: 78
+    key: bulb_gap
+    help: Radial geometric gap around the bulb body. This is not a temperature rating.
+    label: Clearance gap
+    default: 10
+    min: 0
+    max: 40
+    step: 0.5
+    unit: mm
+
+  - share_id: 79
+    key: bulb_overlay
+    label: Show bulb envelope
+    default: 0
+    min: 0
+    max: 1
+    step: 1
+    options:
+      - Hidden
+      - Visible

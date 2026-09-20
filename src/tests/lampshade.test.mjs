@@ -1,9 +1,12 @@
+import { surfacePlan } from "../../models/lampshade/surface.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { parse } from "smol-toml";
+import { readCatalog } from "../tools/catalog-yaml.mjs";
 import Module from "manifold-3d";
-import { BufferGeometry, BufferAttribute } from "three";
+import { BufferGeometry, BufferAttribute, IcosahedronGeometry } from "three";
+import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { creasedNormals } from "../site/configurator/creased-normals.mjs";
 import { toCreasedNormals } from "three/addons/utils/BufferGeometryUtils.js";
 import { applySurfaceNormals } from "../site/configurator/surface-normals.mjs";
 import {
@@ -18,7 +21,7 @@ import {
   sampleSections,
   profile,
 } from "../../models/lampshade/reference.mjs";
-const catalog = parse(await readFile("models/lampshade/catalog.toml", "utf8"));
+const catalog = await readCatalog("models/lampshade/catalog.yml");
 const defaults = Object.fromEntries(
   catalog.parameters.map((p) => [p.key, p.default]),
 );
@@ -572,21 +575,33 @@ test("mounting supports stay inside the curved shade wall", () => {
   }
 });
 
-test("cell normalisation preserves proportions and ignores drawing size and position", async () => {
+test("cell normalisation fills both axes independently of drawing size and position", async () => {
   const { opening } = await import("../../models/lampshade/cells.mjs");
   const original = presetNodes(4);
   const small = original.map((n) => ({
     ...n,
     x: n.x * 0.25 + 0.1,
-    y: n.y * 0.25 - 0.2,
+    y: n.y * 0.5 - 0.2,
   }));
   const a = opening(applyNodes(defaults, original));
   const b = opening(applyNodes(defaults, small));
   a.forEach((q, i) =>
     q.forEach((v, k) => assert.ok(Math.abs(v - b[i][k]) < 1e-10)),
   );
-  assert.equal(Math.max(...a.flat()), 1);
-  assert.equal(Math.min(...a.flat()), -1);
+  for (const k of [0, 1]) {
+    assert.equal(Math.max(...b.map((q) => q[k])), 1);
+    assert.equal(Math.min(...b.map((q) => q[k])), -1);
+  }
+  assert.throws(
+    () =>
+      opening(
+        applyNodes(
+          defaults,
+          original.map((n) => ({ ...n, y: 0 })),
+        ),
+      ),
+    /Separate/,
+  );
   const p = { ...defaults, density: 25, ripple_depth: 0, twist: 0 };
   const first = new module.Model(JSON.stringify(applyNodes(p, original))).part(
     0,
@@ -595,4 +610,220 @@ test("cell normalisation preserves proportions and ignores drawing size and posi
   check(first);
   check(second);
   assert.ok(Math.abs(first.volume() - second.volume()) < 0.01);
+});
+
+test("curved overlapping rings avoid the excessive uniform subdivision mesh", () => {
+  const p = {
+    ...defaults,
+    cell_cut_outside: 1,
+    cell_scale: 1.7,
+    cell_0_smooth: 1,
+    cell_0_hy: 0.293,
+    cell_1_smooth: 1,
+    cell_1_hx: -0.293,
+    cell_2_smooth: 1,
+    cell_2_hy: -0.293,
+    cell_3_smooth: 1,
+    cell_3_hx: 0.293,
+    cell_3_y: 0.28,
+  };
+  const model = new module.Model(JSON.stringify(p));
+  model.parts.forEach(check);
+  const part = model.part(0);
+  assert.ok(
+    part.indices().length / 3 <
+      2000 * surfacePlan(p).cols * surfacePlan(p).rows,
+    "keep the surface-spaced pattern within a bounded mesh budget",
+  );
+});
+
+test("ripple depth follows profile, wall and mounting clearance", async () => {
+  const { maxRippleDepth } = await import("../../models/lampshade/cells.mjs");
+  assert.equal(maxRippleDepth(defaults), 30);
+  for (const overrides of [
+    {},
+    { bottom_diameter: 100, middle_diameter: 200, top_diameter: 160 },
+    { thickness: 4, clamp_diameter: 54 },
+    { bottom_diameter: 290, middle_diameter: 290, top_diameter: 290 },
+  ]) {
+    const p = { ...defaults, ...overrides, fit_test: 1 };
+    const max = maxRippleDepth(p);
+    new module.Model(JSON.stringify({ ...p, ripple_depth: max })).parts.forEach(
+      check,
+    );
+    assert.throws(
+      () =>
+        new module.Model(
+          JSON.stringify({
+            ...p,
+            ripple_depth: Number((max + 0.1).toFixed(1)),
+          }),
+        ),
+      /Ripple depth must be at most/,
+    );
+  }
+  build({ pattern: 0, ripple_depth: 10 }).parts.forEach(check);
+});
+
+test("rounded strands change exported geometry while retaining connected printable rings", () => {
+  const p = {
+    density: 20,
+    height: 100,
+    bottom_diameter: 120,
+    middle_diameter: 120,
+    top_diameter: 120,
+    ripple_depth: 0,
+    twist: 0,
+    cell_cut_outside: 1,
+    cell_cut_inside: 1,
+  };
+  const square = build(p).part(0);
+  const rounded = build({ ...p, cell_rounded: 1 }).part(0);
+  check(rounded);
+  assert.ok(rounded.volume() < square.volume() * 0.95);
+  assert.ok(rounded.volume() > square.volume() * 0.65);
+  assert.ok(rounded.stl().length > 84);
+});
+
+test("indexed crease shading agrees with the reference without expanding every triangle", () => {
+  const shape = new IcosahedronGeometry(20, 3);
+  shape.deleteAttribute("normal");
+  shape.deleteAttribute("uv");
+  const input = mergeVertices(shape);
+  const reference = toCreasedNormals(input, Math.PI / 4);
+  const actual = creasedNormals(input, Math.PI / 4);
+  assert.ok(
+    actual.getAttribute("position").count <
+      reference.getAttribute("position").count / 2,
+  );
+  const normal = actual.getAttribute("normal");
+  const expected = reference.getAttribute("normal");
+  for (let i = 0; i < actual.index.count; i++) {
+    const j = actual.index.getX(i);
+    for (const axis of ["getX", "getY", "getZ"])
+      assert.ok(Math.abs(normal[axis](j) - expected[axis](i)) < 1e-5);
+  }
+  input.dispose();
+  shape.dispose();
+  actual.dispose();
+  reference.dispose();
+});
+
+test("wave strands sweep into one printable shade and preserve the adapter", () => {
+  const p = {
+    pattern: 2,
+    wave_arch: 0,
+    wave_width: 40,
+    wave_height: 8,
+    height: 100,
+    bottom_diameter: 120,
+    middle_diameter: 120,
+    top_diameter: 120,
+    ripple_depth: 0,
+    twist: 0,
+    wave_width: 47,
+  };
+  const result = build(p);
+  check(result.part(0));
+  check(result.part(1));
+  assert.ok(result.part(0).indices().length / 3 < 700000);
+  assert.throws(
+    () =>
+      build({
+        ...p,
+        wave_0_y: 0,
+        wave_1_y: 0,
+        wave_2_y: 0,
+        wave_3_y: 0,
+        wave_0_slope: 0,
+        wave_1_slope: 0,
+        wave_2_slope: 0,
+        wave_3_slope: 0,
+      }),
+    /some height/,
+  );
+  assert.throws(() => build({ ...p, wave_2_x: 0.1 }), /ordered/);
+});
+
+test("wave strands stay connected through pronounced ripple and twist", () => {
+  const result = build({
+    pattern: 2,
+    wave_arch: 0,
+    wave_width: 40,
+    wave_height: 8,
+    height: 245,
+    bottom_diameter: 160,
+    middle_diameter: 160,
+    top_diameter: 160,
+    lobes: 4,
+    ripple_depth: 35,
+    twist: 45,
+  });
+  check(result.part(0));
+  assert.ok(result.part(0).indices().length / 3 < 900000);
+  assert.throws(
+    () =>
+      build({
+        pattern: 2,
+        wave_arch: 0,
+        wave_width: 40,
+        wave_height: 8,
+        height: 245,
+        bottom_diameter: 160,
+        middle_diameter: 160,
+        top_diameter: 160,
+        lobes: 24,
+        ripple_depth: 35,
+        twist: 45,
+      }),
+    /tight bends|folds/,
+  );
+});
+
+test("strand merge replaces unsafe dense spacing and remains printable", () => {
+  const result = build({
+    pattern: 2,
+    wave_arch: 0,
+    wave_width: 40,
+    wave_height: 8,
+    height: 245,
+    bottom_diameter: 160,
+    middle_diameter: 160,
+    top_diameter: 160,
+    lobes: 4,
+    ripple_depth: 35,
+    twist: 45,
+    wave_width: 16.4,
+    wave_merge: 100,
+    wave_height: 2.5,
+    wave_spacing: 1,
+    wave_offset: 0.5,
+    wave_0_slope: 0,
+    wave_2_slope: 0,
+  });
+  const shade = result.part(0);
+  check(shade);
+  // This 97-layer case has substantially more exposed surface than the 4.5 mm wave.
+  assert.ok(shade.indices().length / 3 < 6000000);
+  assert.ok(shade.volume() > 20000 && shade.volume() < 300000);
+  assert.ok(Math.abs(shade.bounds()[5] - shade.bounds()[2] - 245) < 0.1);
+});
+
+test("half-sine arches fuse their trough corners into a printable shade", () => {
+  const result = build({
+    pattern: 2,
+    height: 100,
+    bottom_diameter: 120,
+    middle_diameter: 120,
+    top_diameter: 120,
+    ripple_depth: 0,
+    twist: 0,
+    thickness: 1.2,
+    wave_width: 10,
+    wave_height: 10,
+    wave_arch: 1,
+  });
+  check(result.part(0));
+  check(result.part(1));
+  assert.ok(result.part(0).volume() > 5000);
 });
