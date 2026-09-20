@@ -183,6 +183,9 @@ p {
   margin: 0;
   font-size: 18px;
 }
+.home > section:has(.featured-model) + section:has(.featured-model) {
+  margin-top: 24px;
+}
 .featured-model {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
