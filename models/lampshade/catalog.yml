@@ -1,3 +1,6 @@
+card_label: Configurable · 3D printable
+card_link_text: Configure the shade
+display_order: 20
 # Model catalogue. Sharing IDs are permanent.
 id: lampshade
 enabled: false

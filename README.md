@@ -54,6 +54,22 @@ The preview serves `dist/client` on port 4174. For a repository Pages site use `
 
 Each model directory in `models/` contains a Rust Cargo crate and `catalog.yml`. The catalogue selects `backend: cadrum` for CAD solids or `backend: manifold` for triangle-mesh solids. Build tooling discovers these directories, validates their metadata and generates the site catalogue and lazy module loaders. Each crate compiles to its own WASM module; the browser loads only the selected model. Static model pages are generated from the same catalogue. Set `enabled: false` to hide a model from the homepage and disable its design route and static page; omitted flags default to enabled. Disabled models remain available to build and test tooling.
 
+Homepage cards are generated from enabled catalogue entries. They always use the
+catalogue `title` and `description`; no per-model homepage code is required.
+Optional presentation fields:
+
+- `status`: `work-in-progress` or `ready`; omitted means no status pill.
+- `status_note`: explanatory text shown on both the card and model page; requires
+  `status`. Work in Progress has a generic fallback note when this is omitted.
+- `card_label`: category pill text, such as `Configurable · Woodworking`.
+- `card_link_text`: call to action; defaults to `Configure`.
+- `artwork_caption` / `artwork_caption_bottom`: optional preview captions.
+- `display_order`: integer, ascending; omitted entries follow ordered ones,
+  with model ID breaking ties.
+
+Status describes readiness independently of visibility. These presentation fields
+do not alter geometry, revision numbers or existing configuration links.
+
 See [the BILRESA package](models/bilresa/README.md) for the model contract and authoring guidance. The catalogue is the source of truth for the exposed count defaults/limits and UI metadata. BILRESA's fixed mechanical measurements remain in `model.rs`.
 
 BILRESA revision 2 generates three parts, supports independent counts of 0–4, and exposes plate dimensions and advanced fit/structure settings. The preview offers Solid, Outline and orthographic Blueprint modes with optional measurements. Physical fit and the 0.3 mm adhesive allowance are not yet verified. Shared links record the model ID, schema version, model revision and parameter overrides.

@@ -21,6 +21,13 @@ export type CameraPreset = {
 export type ModelDefinition = {
   /** Omitted flags preserve existing live models. */
   enabled?: boolean;
+  status?: "work-in-progress" | "ready";
+  status_note?: string;
+  card_label?: string;
+  card_link_text?: string;
+  artwork_caption?: string;
+  artwork_caption_bottom?: string;
+  display_order?: number;
   share_id: number;
   default_view?: "solid" | "outline";
   backend: "cadrum" | "manifold";
@@ -81,4 +88,18 @@ export function geometryContract(model: ModelDefinition) {
     ),
     parts: model.parts.map((part) => part.id),
   };
+}
+
+/** Catalogue order is editorial; ID breaks ties without depending on filesystem order. */
+export function visibleModels(
+  models: readonly ModelDefinition[],
+): ModelDefinition[] {
+  return models
+    .filter((model) => model.enabled !== false)
+    .sort(
+      (a, b) =>
+        (a.display_order ?? Number.MAX_SAFE_INTEGER) -
+          (b.display_order ?? Number.MAX_SAFE_INTEGER) ||
+        a.id.localeCompare(b.id),
+    );
 }

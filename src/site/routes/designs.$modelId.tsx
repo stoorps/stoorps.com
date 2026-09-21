@@ -1,4 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { ModelStatusPill, ModelStatusNote } from "../components/ModelStatus";
 import { Configurator } from "../configurator/Configurator";
 import { models } from "../../generated/catalog";
 export const Route = createFileRoute("/designs/$modelId")({
@@ -30,9 +31,11 @@ function ModelPage() {
               {model.title}
               <span className="title-dot">.</span>
             </h1>
+            <ModelStatusPill model={model} />
             <span className="pill title-version">V{model.revision}</span>
           </div>
           <p>{model.description}</p>
+          <ModelStatusNote model={model} />
         </div>
         <div id="model-downloads" />
       </div>

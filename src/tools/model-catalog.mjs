@@ -8,6 +8,13 @@ export function validateCatalog(value, directory) {
   const allowed = [
     "id",
     "enabled",
+    "status",
+    "status_note",
+    "card_label",
+    "card_link_text",
+    "artwork_caption",
+    "artwork_caption_bottom",
+    "display_order",
     "share_id",
     "revision",
     "title",
@@ -30,6 +37,30 @@ export function validateCatalog(value, directory) {
     throw new Error(`${directory}: id must match its directory`);
   if (value.enabled !== undefined && typeof value.enabled !== "boolean")
     throw new Error(`${directory}: enabled must be a boolean`);
+  if (
+    value.status !== undefined &&
+    !["work-in-progress", "ready"].includes(value.status)
+  )
+    throw new Error(`${directory}: invalid status`);
+  if (value.status_note !== undefined && value.status === undefined)
+    throw new Error(`${directory}: status_note requires status`);
+  if (
+    value.display_order !== undefined &&
+    !Number.isSafeInteger(value.display_order)
+  )
+    throw new Error(`${directory}: display_order must be an integer`);
+  for (const key of [
+    "status_note",
+    "card_label",
+    "card_link_text",
+    "artwork_caption",
+    "artwork_caption_bottom",
+  ])
+    if (
+      value[key] !== undefined &&
+      (typeof value[key] !== "string" || !value[key].trim())
+    )
+      throw new Error(`${directory}: invalid ${key}`);
   if (!Number.isSafeInteger(value.revision) || value.revision < 1)
     throw new Error(`${directory}: invalid revision`);
   for (const key of ["title", "description"])

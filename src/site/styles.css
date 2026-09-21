@@ -183,9 +183,17 @@ p {
   margin: 0;
   font-size: 18px;
 }
-.home > section:has(.featured-model) + section:has(.featured-model) {
-  margin-top: 24px;
+.model-card-list { display: grid; gap: 24px; }
+.model-card-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px 14px; }
+.model-card-heading h3 { margin-bottom: 0; }
+.model-card-heading { margin-bottom: 16px; }
+.model-status-pill { flex: 0 0 auto; }
+.pill.model-status-pill[data-status="work-in-progress"] { background: #f4ddb0; color: #653e12; border: 1px solid #b99152; }
+.model-card-copy .model-status-note, .model-title .model-status-note {
+  font-size: 14px; line-height: 1.5; border-left: 3px solid #b99152;
+  padding-left: 12px; margin: 12px 0 0; max-width: 65ch;
 }
+.model-title .model-status-note { color: #f4ddb0; }
 .featured-model {
   display: grid;
   grid-template-columns: 1.25fr 1fr;

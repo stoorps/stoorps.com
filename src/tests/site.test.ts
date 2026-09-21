@@ -352,3 +352,36 @@ test("delta links retain every setting together, including inactive cell nodes a
     assert.deepEqual(parametersFromHash(model, new URL(url).hash), params);
   }
 });
+
+test("homepage discovers enabled catalogue entries and orders without model-specific definitions", async () => {
+  const { visibleModels } = await import("../site/models/types");
+  const entries = [
+    { ...bilresa, id: "future-model", display_order: 5 },
+    { ...bilresa, id: "hidden", enabled: false, display_order: 0 },
+    { ...bilresa, id: "unordered", display_order: undefined },
+    { ...bilresa, id: "second", display_order: 10 },
+  ];
+  assert.deepEqual(
+    visibleModels(entries).map((m) => m.id),
+    ["future-model", "second", "unordered"],
+  );
+  assert.equal(entries[0].id, "future-model");
+  assert.deepEqual(visibleModels([]), []);
+  assert.equal(
+    visibleModels([{ ...bilresa, status: "work-in-progress" }]).length,
+    1,
+  );
+});
+
+test("presentation metadata does not change geometry or invalidate shared configurations", () => {
+  assert.deepEqual(
+    geometryContract({
+      ...bilresa,
+      status: "work-in-progress",
+      status_note: "Prototype",
+      card_label: "Woodworking",
+      display_order: 4,
+    }),
+    geometryContract(bilresa),
+  );
+});

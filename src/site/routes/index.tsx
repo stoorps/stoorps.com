@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getModel } from "../../generated/catalog";
-import { ModelArtwork } from "../components/ModelArtwork";
+import { models } from "../../generated/catalog";
+import { visibleModels } from "../models/types";
+import { ModelCard } from "../components/ModelCard";
 export const Route = createFileRoute("/")({ component: Home });
 function Home() {
-  const featured = getModel("bilresa");
-  const lampshade = getModel("lampshade");
-  const sideboard = getModel("mini-rack-sideboard");
+  const cards = visibleModels(models);
   return (
     <main id="main" className="home content">
       <section className="home-intro">
@@ -48,74 +47,16 @@ function Home() {
           More about me <span aria-hidden="true">→</span>
         </Link>
       </section>
-      {featured.enabled !== false && (
+      {cards.length > 0 && (
         <section aria-labelledby="featured-heading">
           <div className="section-heading">
             <h2 id="featured-heading">From the workbench</h2>
           </div>
-          <Link
-            to="/designs/$modelId"
-            params={{ modelId: "bilresa" }}
-            className="featured-model"
-          >
-            <div
-              className="model-card-art"
-              style={{ viewTransitionName: `model-${featured.id}` }}
-            >
-              <span className="art-caption">BILRESA / Three-part assembly</span>
-              <ModelArtwork model={featured} />
-              <span className="art-caption bottom">Made to fit your setup</span>
-            </div>
-            <div className="model-card-copy">
-              <span className="pill">Configurable · 3D printable</span>
-              <h3>{featured.title}</h3>
-              <p>{featured.description}</p>
-              <span className="text-action">
-                Configure the cover <span aria-hidden="true">↗</span>
-              </span>
-            </div>
-          </Link>
-        </section>
-      )}
-      {lampshade.enabled !== false && (
-        <section aria-label="Lampshade configurator">
-          <Link
-            to="/designs/$modelId"
-            params={{ modelId: "lampshade" }}
-            className="featured-model"
-          >
-            <div className="model-card-art">
-              <ModelArtwork model={lampshade} />
-            </div>
-            <div className="model-card-copy">
-              <span className="pill">Configurable · 3D printable</span>
-              <h3>Curve lampshade</h3>
-              <p>
-                Shape a rippled shell or an open lattice, with a removable
-                adapter for your fixture.
-              </p>
-              <span className="text-action">Configure the shade ↗</span>
-            </div>
-          </Link>
-        </section>
-      )}
-      {sideboard.enabled !== false && (
-        <section aria-label="Mini Rack Sideboard configurator">
-          <Link
-            to="/designs/$modelId"
-            params={{ modelId: sideboard.id }}
-            className="featured-model"
-          >
-            <div className="model-card-art">
-              <ModelArtwork model={sideboard} />
-            </div>
-            <div className="model-card-copy">
-              <span className="pill">Configurable · Woodworking</span>
-              <h3>{sideboard.title}</h3>
-              <p>{sideboard.description}</p>
-              <span className="text-action">Configure the sideboard ↗</span>
-            </div>
-          </Link>
+          <div className="model-card-list">
+            {cards.map((model) => (
+              <ModelCard key={model.id} model={model} />
+            ))}
+          </div>
         </section>
       )}
       <section className="software-section" aria-labelledby="software-heading">

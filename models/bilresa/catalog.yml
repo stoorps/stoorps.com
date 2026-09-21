@@ -1,3 +1,8 @@
+card_label: Configurable · 3D printable
+card_link_text: Configure the cover
+artwork_caption: BILRESA / Three-part assembly
+artwork_caption_bottom: Made to fit your setup
+display_order: 10
 # Model catalogue. Sharing IDs are permanent.
 backend: cadrum
 id: bilresa

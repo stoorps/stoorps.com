@@ -175,3 +175,32 @@ test("parameter groups inherit names and reject ambiguous structures", async () 
   ])
     assert.throws(() => normalizeGroups(invalid));
 });
+
+test("card metadata and readiness status are validated independently of visibility", async () => {
+  const { catalog } = (await readModels()).find(
+    (m) => m.catalog.id === "bilresa",
+  );
+  assert.doesNotThrow(() =>
+    validateCatalog(
+      {
+        ...catalog,
+        enabled: true,
+        status: "work-in-progress",
+        status_note: "Unbuilt prototype",
+        display_order: 0,
+      },
+      catalog.id,
+    ),
+  );
+  for (const change of [
+    { status: "unknown" },
+    { status_note: "Note", status: undefined },
+    { display_order: 1.5 },
+    { card_label: 42 },
+    { card_link_text: "" },
+    { artwork_caption: false },
+    { artwork_caption_bottom: [] },
+  ]) {
+    assert.throws(() => validateCatalog({ ...catalog, ...change }, catalog.id));
+  }
+});

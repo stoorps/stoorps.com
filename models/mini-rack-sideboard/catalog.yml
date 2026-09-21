@@ -1,5 +1,10 @@
 {
   "id": "mini-rack-sideboard",
+  "status": "work-in-progress",
+  "status_note": "This cabinet has not been built yet, and the design has not been finalised. Dimensions, joinery and hardware details may change.",
+  "card_label": "Configurable · Woodworking",
+  "card_link_text": "Configure the sideboard",
+  "display_order": 30,
   "share_id": 3,
   "revision": 1,
   "title": "Mini Rack Sideboard",
